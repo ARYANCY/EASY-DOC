@@ -5,6 +5,8 @@ const documentSchema = new mongoose.Schema({
   filename: { type: String, required: true },
   text: { type: String, required: true },
   chunks: [{ type: String }],
+  status: { type: String, enum: ['analyzed', 'pending', 'processing'], default: 'pending' },
+  riskScore: { type: Number, default: null },
   metadata: {
     pageCount: Number,
     isScanned: Boolean,

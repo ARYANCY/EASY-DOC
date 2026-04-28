@@ -1,18 +1,18 @@
 import express from 'express';
-import { handleChat } from './chat.service.js';
+import { callClause } from '../../core/services/pythonClient.js';
 import { authenticateToken } from '../../middleware/auth.js';
 
 const router = express.Router();
 
 router.post('/', authenticateToken, async (req, res, next) => {
   try {
-    const { query, documentId } = req.body;
+    const { documentId, clauseTypes } = req.body;
     
-    if (!query) {
-      return res.status(400).json({ error: 'Query is required' });
+    if (!documentId) {
+      return res.status(400).json({ error: 'Document ID is required' });
     }
     
-    const result = await handleChat(query, documentId);
+    const result = await callClause(documentId, clauseTypes);
     res.json(result);
   } catch (error) {
     next(error);

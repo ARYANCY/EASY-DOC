@@ -26,7 +26,7 @@ async def upload_file(file: UploadFile = File(...)):
         "filename": file.filename,
         "text": result["text"],
         "chunks": result["chunks"],
-        "is_scanned": result["is_scanned"],
+        "document_type": result["document_type"],
         "chunk_count": result["chunk_count"]
     })
     
@@ -38,6 +38,6 @@ async def upload_file(file: UploadFile = File(...)):
     return {
         "document_id": document_id,
         "filename": file.filename,
-        "is_scanned": result["is_scanned"],
+        "document_type": result["document_type"],
         "chunk_count": result["chunk_count"]
     }

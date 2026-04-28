@@ -1,6 +1,12 @@
 import api from '../../lib/axiosInstance';
 
-export const getRiskAnalysis = async (documentId: string) => {
+export interface RiskResponse {
+  risk_score: number;
+  flags: any[];
+  summary: string;
+}
+
+export const getRiskAnalysis = async (documentId: string): Promise<RiskResponse> => {
   const response = await api.get(`/risk/${documentId}`);
-  return response;
+  return response.data;
 };

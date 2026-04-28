@@ -6,12 +6,8 @@ import { useState, useEffect } from "react";
 import {
   LayoutDashboard,
   FileText,
-  History,
-  FileStack,
-  Bookmark,
-  GitCompare,
-  Settings,
-  HelpCircle,
+  Upload,
+  Search,
   Scale,
   Menu,
   X,
@@ -22,12 +18,8 @@ import { getFeatures, FeatureFlags } from "../lib/features";
 const allNavigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard, feature: null },
   { name: "Documents", href: "/documents", icon: FileText, feature: null },
-  { name: "Recent Analyses", href: "/analyses", icon: History, feature: null },
-  { name: "Templates", href: "/templates", icon: FileStack, feature: "templates" },
-  { name: "Saved Queries", href: "/queries", icon: Bookmark, feature: "savedQueries" },
-  { name: "Compare Documents", href: "/compare", icon: GitCompare, feature: "compareDocuments" },
-  { name: "Settings", href: "/settings", icon: Settings, feature: null },
-  { name: "Help & Support", href: "/help", icon: HelpCircle, feature: null },
+  { name: "Upload", href: "/upload", icon: Upload, feature: null },
+  { name: "Search", href: "/search", icon: Search, feature: null },
 ];
 
 interface SidebarProps {

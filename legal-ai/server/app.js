@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import { connectDB } from './core/config/db.js';
 
 import uploadRoutes from './features/upload/upload.route.js';
 import documentRoutes from './features/document/document.route.js';
@@ -8,11 +9,16 @@ import chatRoutes from './features/chat/chat.route.js';
 import riskRoutes from './features/risk/risk.route.js';
 import simplifyRoutes from './features/simplify/simplify.route.js';
 import searchRoutes from './features/search/search.route.js';
+import authRoutes from './features/auth/auth.route.js';
+import clauseRoutes from './features/clause/clause.route.js';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+// Connect to MongoDB
+connectDB();
 
 app.use(cors());
 app.use(express.json());
@@ -29,6 +35,8 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/risk', riskRoutes);
 app.use('/api/simplify', simplifyRoutes);
 app.use('/api/search', searchRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/clause', clauseRoutes);
 
 // Error handler
 app.use((err, req, res, next) => {

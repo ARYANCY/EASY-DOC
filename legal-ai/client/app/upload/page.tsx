@@ -1,18 +1,31 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Sidebar from '../../components/Sidebar';
 import Header from '../../components/Header';
 import { Upload as UploadIcon, FileText, Loader2, CheckCircle } from 'lucide-react';
 import { uploadDocument } from '../../features/upload/uploadService';
+import { getCurrentUser } from '../../features/auth/authService';
 
 export default function UploadPage() {
   const router = useRouter();
+  const [user, setUser] = useState<any>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const currentUser = getCurrentUser();
+    if (!currentUser) {
+      router.push("/login");
+      return;
+    }
+    setUser(currentUser);
+  }, [router]);
+
+  if (!user) return null;
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();

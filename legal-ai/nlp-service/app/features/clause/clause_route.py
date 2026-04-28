@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
-from app.features.clause.clause_service import extract_clauses
+from app.features.clause.clause_service import extract_clauses as extract_clauses_service
 
 router = APIRouter()
 
@@ -11,6 +11,6 @@ class ClauseRequest(BaseModel):
 
 
 @router.post("/")
-async def extract_clauses_endpoint(request: ClauseRequest):
-    result = await extract_clauses(request.document_id, request.clause_types)
+async def extract_clauses(request: ClauseRequest):
+    result = await extract_clauses_service(request.document_id, request.clause_types)
     return result

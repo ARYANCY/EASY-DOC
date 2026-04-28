@@ -91,4 +91,14 @@ export const callSearch = async (query, documentId) => {
   });
 };
 
+export const callClause = async (documentId, clauseTypes) => {
+  return withRetry(async () => {
+    const response = await pythonApi.post('/clause/', {
+      document_id: documentId,
+      clause_types: clauseTypes,
+    });
+    return response.data;
+  });
+};
+
 export default pythonApi;

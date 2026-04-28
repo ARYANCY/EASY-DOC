@@ -9,5 +9,5 @@ export const uploadDocument = async (file: File) => {
       'Content-Type': 'multipart/form-data',
     },
   });
-  return response;
+  return response.data;
 };

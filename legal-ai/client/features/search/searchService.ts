@@ -18,7 +18,7 @@ export const searchDocuments = async (
     query,
     documentId,
   });
-  return response as SearchResponse;
+  return response.data;
 };
 
 export default { searchDocuments };

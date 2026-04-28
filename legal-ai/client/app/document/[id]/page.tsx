@@ -1,18 +1,23 @@
 'use client';
 
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import Sidebar from '../../../components/Sidebar';
 import Header from '../../../components/Header';
+import PanelToggles from '../../../components/PanelToggles';
+import SlidePanel from '../../../components/SlidePanel';
+import BottomPanel from '../../../components/BottomPanel';
 import RiskPanel from '../../../components/RiskPanel';
 import ChatPanel from '../../../components/ChatPanel';
 import DocumentSummary from '../../../components/DocumentSummary';
 import ClausesPanel from '../../../components/ClausesPanel';
 import { exportToPDF } from '../../../lib/utils/exportPDF';
 import { Download, Share2, FileText, MessageSquare, Loader2 } from 'lucide-react';
-import { getDocument } from '../../../features/document/documentService';
+import { getDocument, simplifyDocument } from '../../../features/document/documentService';
 import { getRiskAnalysis } from '../../../features/risk/riskService';
+import { extractClauses } from '../../../features/clause/clauseService';
 import { getFeatures, FeatureFlags } from '../../../lib/features';
+import { getCurrentUser } from '../../../features/auth/authService';
 
 // Sample data - in production, fetch from your API
 const sampleClauses = [
@@ -69,27 +74,55 @@ const sampleRiskFlags = [
 
 export default function DocumentPage() {
   const params = useParams();
+  const router = useRouter();
   const documentId = params.id as string;
   
   const [activeTab, setActiveTab] = useState<'original' | 'simplified' | 'clauses' | 'summary'>('original');
   const [loading, setLoading] = useState(true);
   const [documentData, setDocumentData] = useState<any>(null);
   const [riskData, setRiskData] = useState<any>(null);
+  const [clausesData, setClausesData] = useState<any[]>([]);
+  const [simplifiedText, setSimplifiedText] = useState<string>('');
   const [features, setFeatures] = useState<FeatureFlags | null>(null);
+  const [user, setUser] = useState<any>(null);
+
+  // Panel visibility states
+  const [showChat, setShowChat] = useState(false);
+  const [showRisk, setShowRisk] = useState(false);
+  const [showClauses, setShowClauses] = useState(false);
+  const [showSummary, setShowSummary] = useState(false);
+  const [showBottomPanel, setShowBottomPanel] = useState(false);
+  const [errors, setErrors] = useState<string[]>([]);
 
   useEffect(() => {
+    const currentUser = getCurrentUser();
+    if (!currentUser) {
+      router.push("/login");
+      return;
+    }
+    setUser(currentUser);
     setFeatures(getFeatures());
-  }, []);
+  }, [router]);
+
+  if (!user || !features) return null;
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [doc, risk] = await Promise.all([
+        const [doc, risk, clauses] = await Promise.all([
           getDocument(documentId),
           getRiskAnalysis(documentId),
+          extractClauses(documentId).catch(() => []),
         ]);
         setDocumentData(doc);
         setRiskData(risk);
+        setClausesData(clauses);
+        
+        // Fetch simplified text when switching to simplified tab
+        if (doc?.text) {
+          const simplified = await simplifyDocument(doc.text);
+          setSimplifiedText(simplified.simplified);
+        }
       } catch (error) {
         console.error('Error fetching document data:', error);
       } finally {
@@ -110,11 +143,11 @@ export default function DocumentPage() {
 
   const handleExportPDF = () => {
     exportToPDF({
-      documentName: documentData?.filename || 'Non-Disclosure Agreement.pdf',
-      summary: 'This Non-Disclosure Agreement (NDA) is between two parties where one party agrees to share confidential information and the other agrees not to disclose it. The agreement outlines obligations, exceptions, and the duration of confidentiality.',
-      riskScore: 72,
-      riskFlags: sampleRiskFlags,
-      clauses: sampleClauses.map(c => ({ title: c.title, description: c.description })),
+      documentName: documentData?.filename || 'Document.pdf',
+      summary: riskData?.summary || 'Summary not available',
+      riskScore: riskData?.risk_score || 0,
+      riskFlags: riskData?.flags || sampleRiskFlags,
+      clauses: clausesData.length > 0 ? clausesData.map((c: any) => ({ title: c.title, description: c.description })) : sampleClauses.map(c => ({ title: c.title, description: c.description })),
     });
   };
 
@@ -141,7 +174,18 @@ export default function DocumentPage() {
           documentName="Non-Disclosure Agreement.pdf"
           uploadDate="20 May 2025 • 12:30 PM"
           fileSize="5.2 MB"
-        />
+        >
+          <PanelToggles
+            showChat={showChat}
+            showRisk={showRisk}
+            showClauses={showClauses}
+            showSummary={showSummary}
+            onToggleChat={() => setShowChat(!showChat)}
+            onToggleRisk={() => setShowRisk(!showRisk)}
+            onToggleClauses={() => setShowClauses(!showClauses)}
+            onToggleSummary={() => setShowSummary(!showSummary)}
+          />
+        </Header>
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-auto">
@@ -216,40 +260,29 @@ export default function DocumentPage() {
                   <div className="p-8 min-h-[600px] bg-gray-50">
                     {activeTab === 'original' && (
                       <div className="bg-white p-8 rounded-lg shadow-sm max-w-3xl mx-auto">
-                        <h2 className="text-lg font-bold mb-4">1. Confidential Information</h2>
-                        <p className="text-gray-700 mb-4 leading-relaxed">
-                          1.1 The Disclosing Party may disclose certain confidential and proprietary
-                          information (&quot;Confidential Information&quot;) to the Receiving Party...
-                        </p>
-                        <h2 className="text-lg font-bold mb-4 mt-6">2. Obligations of Receiving Party</h2>
-                        <p className="text-gray-700 mb-4 leading-relaxed">
-                          2.1 The Receiving Party shall hold and maintain the Confidential Information
-                          in strict confidence and shall not, without the prior written consent...
-                        </p>
-                        <h2 className="text-lg font-bold mb-4 mt-6">3. Term and Termination</h2>
-                        <p className="text-gray-700 mb-4 leading-relaxed">
-                          3.1 The obligations of confidentiality set forth in this Agreement shall
-                          remain in effect for a period of 3 (three) years...
+                        <h2 className="text-lg font-bold mb-4">Document Content</h2>
+                        <p className="text-gray-700 mb-4 leading-relaxed whitespace-pre-wrap">
+                          {documentData?.text || 'No document text available'}
                         </p>
                       </div>
                     )}
                     {activeTab === 'simplified' && (
                       <div className="bg-white p-8 rounded-lg shadow-sm max-w-3xl mx-auto">
-                        <h2 className="text-lg font-bold mb-4 text-purple-700">Simple Summary</h2>
+                        <h2 className="text-lg font-bold mb-4 text-purple-700">Simplified Version</h2>
                         <p className="text-gray-700 mb-4 leading-relaxed">
-                          This agreement protects secret information shared between parties. The receiving party must keep the information private for 3 years.
+                          {simplifiedText || 'Simplified text not available'}
                         </p>
                       </div>
                     )}
                     {activeTab === 'clauses' && (
-                      <ClausesPanel clauses={sampleClauses} />
+                      <ClausesPanel clauses={clausesData.length > 0 ? clausesData : sampleClauses} />
                     )}
                     {activeTab === 'summary' && (
                       <DocumentSummary
-                        summary="This Non-Disclosure Agreement (NDA) is between two parties where one party agrees to share confidential information and the other agrees not to disclose it. The agreement outlines obligations, exceptions, and the duration of confidentiality."
-                        totalPages={12}
-                        totalWords={2842}
-                        analyzedAt="20 May 2025"
+                        summary={riskData?.summary || 'Summary not available'}
+                        totalPages={documentData?.metadata?.pageCount || 0}
+                        totalWords={documentData?.text?.split(' ').length || 0}
+                        analyzedAt={new Date(documentData?.createdAt).toLocaleDateString()}
                       />
                     )}
                   </div>
@@ -294,7 +327,7 @@ export default function DocumentPage() {
               {(riskAnalysisEnabled || chatbotEnabled) && (
                 <div className="space-y-6">
                   {riskAnalysisEnabled && (
-                    <RiskPanel riskScore={72} flags={sampleRiskFlags} />
+                    <RiskPanel riskScore={riskData?.risk_score || 0} flags={riskData?.flags || sampleRiskFlags} />
                   )}
                   {chatbotEnabled && (
                     <ChatPanel documentId={documentId} className="h-[500px]" />

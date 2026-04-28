@@ -1,9 +1,10 @@
 import express from 'express';
 import { simplifyText } from './simplify.service.js';
+import { authenticateToken } from '../../middleware/auth.js';
 
 const router = express.Router();
 
-router.post('/', async (req, res, next) => {
+router.post('/', authenticateToken, async (req, res, next) => {
   try {
     const { text } = req.body;
     
