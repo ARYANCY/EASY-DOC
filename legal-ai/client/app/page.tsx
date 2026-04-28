@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import Sidebar from './components/Sidebar';
-import Header from './components/Header';
+import Sidebar from '../components/Sidebar';
+import Header from '../components/Header';
 import { FileText, Clock, Shield, TrendingUp } from 'lucide-react';
 
 export default function Home() {
