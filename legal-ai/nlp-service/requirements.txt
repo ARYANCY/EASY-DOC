@@ -1,33 +1,37 @@
-fastapi
-uvicorn[standard]
-pydantic
-python-multipart
+# FastAPI + Server
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+python-multipart>=0.0.6
 
-# Parsing
-pdfplumber
-pdf2image
-pytesseract
-opencv-python
-docling
+# Document Parsing
+pdfplumber>=0.10.0
+pdf2image>=1.16.3
+pytesseract>=0.3.10
+Pillow>=10.1.0
+opencv-python>=4.8.0
 
-# NLP
-spacy
-scikit-learn
-numpy
+# NLP + ML
+spacy>=3.7.0
+scikit-learn>=1.3.0
+numpy>=1.24.0
 
-# RAG
-sentence-transformers
-faiss-cpu
+# RAG + Embeddings
+sentence-transformers>=2.2.2
+faiss-cpu>=1.7.4
 
-# DB
-pymongo
+# Database
+motor>=3.3.0
+pymongo>=4.6.0
 
-# LLM + APIs
-google-generativeai
-openai
-groq
-httpx
-tenacity
+# LLM APIs
+google-generativeai>=0.3.0
+openai>=1.3.0
+groq>=0.4.0
+httpx>=0.25.0
 
 # Utilities
-python-dotenv
+python-dotenv>=1.0.0
+python-magic>=0.4.27
+tenacity>=8.2.0
