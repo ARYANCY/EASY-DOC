@@ -18,7 +18,7 @@ async def chat_with_document(query: str, document_id: str | None = None) -> dict
     doc_info = None
     if document_id:
         db = get_db()
-        doc_info = await db.documents.find_one({"document_id": document_id})
+        doc_info = await db.documents.find_one({"documentId": document_id})
     
     # Add document metadata context if available
     if doc_info:

@@ -6,6 +6,7 @@ import { connectDB } from './core/config/db.js';
 import uploadRoutes from './features/upload/upload.route.js';
 import documentRoutes from './features/document/document.route.js';
 import chatRoutes from './features/chat/chat.route.js';
+import chatHistoryRoutes from './features/chat/chatHistory.route.js';
 import riskRoutes from './features/risk/risk.route.js';
 import simplifyRoutes from './features/simplify/simplify.route.js';
 import searchRoutes from './features/search/search.route.js';
@@ -37,6 +38,7 @@ app.get('/health', (req, res) => {
 app.use('/api/upload', uploadRoutes);
 app.use('/api/documents', documentRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/chat-history', chatHistoryRoutes);
 app.use('/api/risk', riskRoutes);
 app.use('/api/simplify', simplifyRoutes);
 app.use('/api/search', searchRoutes);

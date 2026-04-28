@@ -26,8 +26,8 @@ async def analyze_risk(document_id: str) -> dict:
     """Analyze legal risks with parallel rule-based and LLM analysis."""
     db = get_db()
     
-    # Fetch document from MongoDB
-    doc = await db.documents.find_one({"document_id": document_id})
+    # Fetch document from MongoDB - use documentId (camelCase) to match Node.js schema
+    doc = await db.documents.find_one({"documentId": document_id})
     if not doc:
         return {"risk_score": 0, "flags": [], "summary": "Document not found"}
     

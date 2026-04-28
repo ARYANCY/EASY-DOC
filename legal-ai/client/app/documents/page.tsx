@@ -130,7 +130,7 @@ export default function DocumentsPage() {
                           </div>
                           <div>
                             <Link
-                              href={`/document/${doc.id}`}
+                              href={`/history/${doc.id}`}
                               className="text-sm font-medium text-gray-900 hover:text-purple-600"
                             >
                               {doc.name}

@@ -7,6 +7,6 @@ export interface RiskResponse {
 }
 
 export const getRiskAnalysis = async (documentId: string): Promise<RiskResponse> => {
-  const response = await api.get(`/risk/${documentId}`);
-  return response.data;
+  const data = await api.get(`/risk/${documentId}`);
+  return (data as unknown) as RiskResponse;
 };

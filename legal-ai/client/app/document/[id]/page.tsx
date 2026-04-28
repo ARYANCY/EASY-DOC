@@ -13,7 +13,7 @@ import DocumentSummary from '../../../components/DocumentSummary';
 import ClausesPanel from '../../../components/ClausesPanel';
 import { exportToPDF } from '../../../lib/utils/exportPDF';
 import { Download, Share2, FileText, MessageSquare, Loader2 } from 'lucide-react';
-import { getDocument, simplifyDocument } from '../../../features/document/documentService';
+import { getDocument, simplifyDocument, Document } from '../../../features/document/documentService';
 import { getRiskAnalysis } from '../../../features/risk/riskService';
 import { extractClauses } from '../../../features/clause/clauseService';
 import { getFeatures, FeatureFlags } from '../../../lib/features';
@@ -79,7 +79,7 @@ export default function DocumentPage() {
   
   const [activeTab, setActiveTab] = useState<'original' | 'simplified' | 'clauses' | 'summary'>('original');
   const [loading, setLoading] = useState(true);
-  const [documentData, setDocumentData] = useState<any>(null);
+  const [documentData, setDocumentData] = useState<Document | null>(null);
   const [riskData, setRiskData] = useState<any>(null);
   const [clausesData, setClausesData] = useState<any[]>([]);
   const [simplifiedText, setSimplifiedText] = useState<string>('');
@@ -104,9 +104,9 @@ export default function DocumentPage() {
     setFeatures(getFeatures());
   }, [router]);
 
-  if (!user || !features) return null;
-
   useEffect(() => {
+    if (!user || !documentId) return;
+    
     const fetchData = async () => {
       try {
         const [doc, risk, clauses] = await Promise.all([
@@ -116,7 +116,7 @@ export default function DocumentPage() {
         ]);
         setDocumentData(doc);
         setRiskData(risk);
-        setClausesData(clauses);
+        setClausesData(Array.isArray(clauses) ? clauses : []);
         
         // Fetch simplified text when switching to simplified tab
         if (doc?.text) {
@@ -131,7 +131,9 @@ export default function DocumentPage() {
     };
 
     fetchData();
-  }, [documentId]);
+  }, [documentId, user]);
+
+  if (!user || !features) return null;
 
   // Feature flags
   const chatbotEnabled = features?.chatbot ?? true;
@@ -275,14 +277,14 @@ export default function DocumentPage() {
                       </div>
                     )}
                     {activeTab === 'clauses' && (
-                      <ClausesPanel clauses={clausesData.length > 0 ? clausesData : sampleClauses} />
+                      <ClausesPanel clauses={(clausesData && clausesData.length > 0) ? clausesData : sampleClauses} />
                     )}
                     {activeTab === 'summary' && (
                       <DocumentSummary
                         summary={riskData?.summary || 'Summary not available'}
                         totalPages={documentData?.metadata?.pageCount || 0}
                         totalWords={documentData?.text?.split(' ').length || 0}
-                        analyzedAt={new Date(documentData?.createdAt).toLocaleDateString()}
+                        analyzedAt={new Date(documentData?.createdAt || Date.now()).toLocaleDateString()}
                       />
                     )}
                   </div>

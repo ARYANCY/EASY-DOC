@@ -14,11 +14,11 @@ export const searchDocuments = async (
   query: string,
   documentId?: string
 ): Promise<SearchResponse> => {
-  const response = await api.post('/search', {
+  const data = await api.post('/search', {
     query,
     documentId,
   });
-  return response.data;
+  return (data as unknown) as SearchResponse;
 };
 
 export default { searchDocuments };

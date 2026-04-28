@@ -9,9 +9,9 @@ export interface Clause {
 }
 
 export const extractClauses = async (documentId: string, clauseTypes?: string[]): Promise<Clause[]> => {
-  const response = await api.post('/clause', {
+  const data = await api.post('/clause', {
     documentId,
     clauseTypes,
   });
-  return response.data;
+  return (data as unknown) as Clause[];
 };

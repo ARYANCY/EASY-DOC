@@ -8,9 +8,9 @@ export interface ChatResponse {
 }
 
 export const sendChatMessage = async (query: string, documentId?: string): Promise<ChatResponse> => {
-  const response = await api.post('/chat', {
+  const data = await api.post('/chat', {
     query,
     documentId,
   });
-  return response.data;
+  return (data as unknown) as ChatResponse;
 };
