@@ -1,0 +1,33 @@
+fastapi
+uvicorn[standard]
+pydantic
+python-multipart
+
+# Parsing
+pdfplumber
+pdf2image
+pytesseract
+opencv-python
+docling
+
+# NLP
+spacy
+scikit-learn
+numpy
+
+# RAG
+sentence-transformers
+faiss-cpu
+
+# DB
+pymongo
+
+# LLM + APIs
+google-generativeai
+openai
+groq
+httpx
+tenacity
+
+# Utilities
+python-dotenv
