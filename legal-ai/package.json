@@ -12,7 +12,7 @@
     "dev:client": "cd client && npm run dev",
     "dev:server": "cd server && npm run dev",
     "dev:nlp": "cd nlp-service && python -m uvicorn app.main:app --reload --port 8000",
-    "dev:all": "concurrently \"npm run dev:nlp\" \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:all": "npm run dev:nlp & npm run dev:server & npm run dev:client & wait",
     "start:all": "npm run dev:all",
     "build:client": "cd client && npm run build",
     "build:all": "npm run build:client",
