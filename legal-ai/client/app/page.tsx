@@ -38,7 +38,7 @@ export default function DashboardPage() {
           getRecentDocuments(5).catch(() => [])
         ]);
         setStats(statsData);
-        setDocuments(docsData);
+        setDocuments(Array.isArray(docsData) ? docsData : []);
       } catch (err) {
         setError("Failed to load dashboard data");
       } finally {

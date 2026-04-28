@@ -17,8 +17,8 @@ export interface RecentDocument {
 
 export const getDashboardStats = async (): Promise<DashboardStats> => {
   try {
-    const response = await api.get("/documents/stats");
-    return response.data;
+    const data = await api.get("/documents/stats");
+    return (data as unknown) as DashboardStats;
   } catch (error) {
     console.error("Failed to fetch dashboard stats:", error);
     throw error;
@@ -27,10 +27,14 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
 
 export const getRecentDocuments = async (limit: number = 5): Promise<RecentDocument[]> => {
   try {
-    const response = await api.get(`/documents?limit=${limit}&sort=createdAt:desc`);
-    return response.data;
+    const data = await api.get(`/documents?limit=${limit}&sort=createdAt:desc`);
+    if (!Array.isArray(data)) {
+      console.warn("API returned non-array data:", data);
+      return [];
+    }
+    return data as RecentDocument[];
   } catch (error) {
     console.error("Failed to fetch recent documents:", error);
-    throw error;
+    return [];
   }
 };

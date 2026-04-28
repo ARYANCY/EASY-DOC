@@ -7,13 +7,31 @@ export const handleUpload = async (file) => {
     // Forward to FastAPI for parsing
     const parseResult = await callParser(file.buffer, file.originalname);
     
+    console.log('Parse result from Python:', parseResult);
+    
     if (!parseResult || !parseResult.document_id) {
-      throw new Error('Failed to parse document');
+      throw new Error('Failed to parse document - no document_id returned');
+    }
+    
+    const documentId = parseResult.document_id;
+    
+    // Check if document already exists (prevent duplicates)
+    const existingDoc = await Document.findOne({ documentId });
+    if (existingDoc) {
+      console.log(`Document ${documentId} already exists, returning existing`);
+      return {
+        success: true,
+        documentId: documentId,
+        filename: file.originalname,
+        chunkCount: parseResult.chunk_count || 0,
+        documentType: parseResult.document_type || 'unknown',
+        message: 'Document already processed'
+      };
     }
     
     // Store upload record
     await Upload.create({
-      documentId: parseResult.document_id,
+      documentId: documentId,
       filename: parseResult.filename,
       originalName: file.originalname,
       mimeType: file.mimetype,
@@ -22,25 +40,26 @@ export const handleUpload = async (file) => {
       parsedData: parseResult
     });
     
-    // Store document for retrieval
+    // Store document for retrieval - map Python fields to Node.js schema
     await Document.create({
-      documentId: parseResult.document_id,
+      documentId: documentId,
       filename: parseResult.filename,
       text: parseResult.text || '',
       chunks: parseResult.chunks || [],
+      status: 'analyzed',
       metadata: {
-        pageCount: parseResult.page_count,
-        isScanned: parseResult.is_scanned,
+        pageCount: parseResult.page_count || parseResult.total_pages || 0,
+        isScanned: parseResult.document_type === 'scanned' || parseResult.is_scanned || false,
         parsedAt: new Date()
       }
     });
     
     return {
       success: true,
-      documentId: parseResult.document_id,
+      documentId: documentId,
       filename: file.originalname,
-      chunkCount: parseResult.chunk_count,
-      isScanned: parseResult.is_scanned,
+      chunkCount: parseResult.chunk_count || 0,
+      documentType: parseResult.document_type || 'unknown',
       message: 'Document uploaded and processed successfully'
     };
     

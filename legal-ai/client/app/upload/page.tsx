@@ -25,8 +25,6 @@ export default function UploadPage() {
     setUser(currentUser);
   }, [router]);
 
-  if (!user) return null;
-
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(true);
@@ -40,12 +38,14 @@ export default function UploadPage() {
   const handleDrop = useCallback(async (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    
+
     const file = e.dataTransfer.files[0];
     if (file && file.type === 'application/pdf') {
       await handleUpload(file);
     }
   }, []);
+
+  if (!user) return null;
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

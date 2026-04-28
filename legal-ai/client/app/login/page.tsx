@@ -21,8 +21,9 @@ export default function LoginPage() {
       const user = await login(name, email);
       setCurrentUser(user);
       router.push("/");
-    } catch (err) {
-      setError("Login failed. Please try again.");
+    } catch (err: any) {
+      console.error("Login error:", err);
+      setError(err.message || "Login failed. Please check server connection.");
     } finally {
       setLoading(false);
     }

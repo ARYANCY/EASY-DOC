@@ -9,10 +9,16 @@ const pythonApi = axios.create({
   },
 });
 
-// Request interceptor for logging
+// Request interceptor for logging and FormData handling
 pythonApi.interceptors.request.use(
   (config) => {
     console.log(`[Python API] ${config.method.toUpperCase()} ${config.url}`);
+    
+    // Remove Content-Type for FormData to let axios set proper boundary
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
+    }
+    
     return config;
   },
   (error) => Promise.reject(error)
@@ -45,8 +51,8 @@ export const callParser = async (fileBuffer, filename) => {
     const formData = new FormData();
     formData.append('file', new Blob([fileBuffer]), filename);
     
+    // Don't set Content-Type - let axios set it with proper boundary
     const response = await pythonApi.post('/parse/', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
       timeout: 180000, // 3 minutes for parsing
     });
     return response.data;
