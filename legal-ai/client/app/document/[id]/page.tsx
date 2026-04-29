@@ -31,7 +31,7 @@ import {
 import Link from 'next/link';
 import Sidebar from '../../../components/Sidebar';
 import Header from '../../../components/Header';
-import { getDocument, simplifyDocument, Document } from '../../../features/document/documentService';
+import { getDocument, getRecentDocuments, simplifyDocument, Document } from '../../../features/document/documentService';
 import { getRiskAnalysis } from '../../../features/risk/riskService';
 import { extractClauses } from '../../../features/clause/clauseService';
 import { getFeatures, FeatureFlags } from '../../../lib/features';
@@ -101,6 +101,7 @@ export default function DocumentPage() {
   const [documentData, setDocumentData] = useState<Document | null>(null);
   const [riskData, setRiskData] = useState<any>(null);
   const [clausesData, setClausesData] = useState<any[]>([]);
+  const [recentDocuments, setRecentDocuments] = useState<any[]>([]);
   const [simplifiedText, setSimplifiedText] = useState<string>('');
   const [features, setFeatures] = useState<FeatureFlags | null>(null);
   const [user, setUser] = useState<any>(null);
@@ -119,6 +120,7 @@ export default function DocumentPage() {
   const [viewMode, setViewMode] = useState<'pdf' | 'parsed'>('pdf');
   const [searchQuery, setSearchQuery] = useState('');
   const [highlightedRanges, setHighlightedRanges] = useState<Array<{start: number, end: number}>>([]);
+  const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const currentUser = getCurrentUser();
@@ -182,14 +184,16 @@ export default function DocumentPage() {
     
     const fetchData = async () => {
       try {
-        const [doc, risk, clauses] = await Promise.all([
+        const [doc, risk, clauses, recentDocs] = await Promise.all([
           getDocument(documentId),
           getRiskAnalysis(documentId),
           extractClauses(documentId).catch(() => []),
+          getRecentDocuments(5).catch(() => []),
         ]);
         setDocumentData(doc);
         setRiskData(risk);
         setClausesData(Array.isArray(clauses) ? clauses : []);
+        setRecentDocuments(Array.isArray(recentDocs) ? recentDocs : []);
         
         // Fetch simplified text when switching to simplified tab
         if (doc?.text) {
@@ -205,6 +209,28 @@ export default function DocumentPage() {
 
     fetchData();
   }, [documentId, user]);
+
+  // Fetch PDF blob securely via API
+  useEffect(() => {
+    if (activeTab === 'pdf' && documentId && !pdfBlobUrl) {
+      import('../../../lib/axiosInstance').then(({ default: api }) => {
+        api.get(`/documents/${documentId}/file`, { responseType: 'blob' })
+          .then((response: any) => {
+            const url = URL.createObjectURL(response);
+            setPdfBlobUrl(url);
+          })
+          .catch(err => console.error('Error loading PDF:', err));
+      });
+    }
+  }, [activeTab, documentData?.filePath, documentId, pdfBlobUrl]);
+
+  useEffect(() => {
+    return () => {
+      if (pdfBlobUrl) {
+        URL.revokeObjectURL(pdfBlobUrl);
+      }
+    };
+  }, [pdfBlobUrl]);
 
   if (!user || !features) return null;
 
@@ -321,7 +347,16 @@ export default function DocumentPage() {
     : documentData?.text || 'No document text available';
   const textLines = currentText.split('\n');
   const riskFlags = riskData?.flags || sampleRiskFlags;
-  const clauseList = clausesData.length > 0 ? clausesData : sampleClauses;
+  
+  // Map backend clauses to frontend expected format, or use empty array
+  const clauseList = clausesData.map(c => ({
+    ...c,
+    id: c.id || String(Math.random()),
+    title: c.title || (c.type ? c.type.charAt(0).toUpperCase() + c.type.slice(1).replace('_', ' ') : 'Clause'),
+    description: c.description || c.text || 'No description available',
+    type: c.type || 'default'
+  }));
+  
   const totalWords = documentData?.text?.split(/\s+/).filter(Boolean).length || 0;
 
   return (
@@ -400,6 +435,31 @@ export default function DocumentPage() {
                   <p>Words: {totalWords.toLocaleString()}</p>
                   <p>Risk: {riskData?.risk_score ?? 0}/100</p>
                 </div>
+                
+                {/* Recent Documents */}
+                <div className="mt-6 border-t border-[#3c3c3c] pt-4">
+                  <p className="mb-2 text-[11px] uppercase text-[#858585]">Recent Analysis</p>
+                  <div className="space-y-1">
+                    {recentDocuments.length > 0 ? (
+                      recentDocuments.map((doc) => (
+                        <Link 
+                          key={doc.id} 
+                          href={`/document/${doc.id}`}
+                          className={`flex w-full items-center gap-2 px-2 py-1.5 text-left transition-colors ${
+                            doc.id === documentId 
+                              ? 'bg-[#37373d] text-[#f3f3f3]' 
+                              : 'text-[#cccccc] hover:bg-[#2a2d2e] hover:text-white'
+                          }`}
+                        >
+                          <FileText className="h-4 w-4 shrink-0 text-[#c586c0]" />
+                          <span className="truncate text-xs">{doc.name || doc.filename || 'Untitled Document'}</span>
+                        </Link>
+                      ))
+                    ) : (
+                      <p className="px-2 text-xs text-[#858585]">No recent analysis.</p>
+                    )}
+                  </div>
+                </div>
               </div>
             </aside>
           )}
@@ -463,11 +523,17 @@ export default function DocumentPage() {
               {/* PDF Viewer */}
               {activeTab === 'pdf' && (
                 <div className="h-full w-full">
-                  <iframe
-                    src={documentData?.filePath ? `/api/documents/${documentId}/file` : undefined}
-                    className="w-full h-full border-0"
-                    title="PDF Viewer"
-                  />
+                  {pdfBlobUrl ? (
+                    <iframe
+                      src={pdfBlobUrl}
+                      className="w-full h-full border-0 bg-white"
+                      title="PDF Viewer"
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center">
+                      <Loader2 className="w-6 h-6 animate-spin text-[#858585]" />
+                    </div>
+                  )}
                 </div>
               )}
               
@@ -491,16 +557,12 @@ export default function DocumentPage() {
               )}
               {activeTab === 'summary' && (
                 <div className="p-4">
-                  {showSummary ? (
-                    <DocumentSummary
-                      summary={riskData?.summary || 'Summary not available'}
-                      totalPages={documentData?.metadata?.pageCount || 0}
-                      totalWords={totalWords}
-                      analyzedAt={new Date(documentData?.createdAt || Date.now()).toLocaleDateString()}
-                    />
-                  ) : (
-                    <p className="text-[#858585]">Summary view is hidden from Explorer preferences.</p>
-                  )}
+                  <DocumentSummary
+                    summary={riskData?.summary || 'Summary not available'}
+                    totalPages={documentData?.metadata?.pageCount || 0}
+                    totalWords={totalWords}
+                    analyzedAt={new Date(documentData?.createdAt || Date.now()).toLocaleDateString()}
+                  />
                 </div>
               )}
             </div>

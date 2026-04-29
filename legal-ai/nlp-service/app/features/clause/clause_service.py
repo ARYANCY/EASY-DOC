@@ -14,8 +14,13 @@ CLAUSE_PATTERNS = {
 async def extract_clauses(document_id: str, clause_types: List[str] | None = None):
     """Extract legal clauses from document."""
     db = get_db()
-    doc = await db.documents.find_one({"document_id": document_id})
+    # Node.js saves the document with the 'documentId' field, not 'document_id'
+    doc = await db.documents.find_one({"documentId": document_id})
     
+    if not doc:
+        # Fallback for documents created directly by Python
+        doc = await db.documents.find_one({"document_id": document_id})
+        
     if not doc:
         return {"error": "Document not found"}
     

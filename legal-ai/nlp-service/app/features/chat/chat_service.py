@@ -11,18 +11,17 @@ async def chat_with_document(query: str, document_id: str | None = None) -> dict
     # Retrieve relevant context
     results = await search_documents(query, document_id, top_k=5)
     
-    # Build context from search results
-    context = "\n\n".join([r["text"] for r in results])
+    # Build context from search results with citations
+    context = "\n\n".join([
+        f"[Source: {r.get('filename', 'Unknown')}]\n{r['text']}" 
+        for r in results
+    ])
     
     # Get document info if available
     doc_info = None
     if document_id:
         db = get_db()
         doc_info = await db.documents.find_one({"documentId": document_id})
-    
-    # Add document metadata context if available
-    if doc_info:
-        context = f"Document: {doc_info.get('filename', 'Unknown')}\n\n{context}"
     
     # Generate response with structured prompt
     prompt = PromptBuilder.chat(context, query)

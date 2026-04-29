@@ -3,8 +3,14 @@ class PromptBuilder:
     
     @staticmethod
     def chat(context: str, query: str) -> str:
-        return f"""Based on the following legal document context, answer the user's question.
-If the answer cannot be found in the context, say so clearly.
+        return f"""You are a legal document analysis assistant. Your task is to answer questions based on the provided legal document context.
+
+Instructions:
+1. Answer ONLY using the provided context below
+2. If the answer is not in the context, say "I cannot find this information in the provided documents"
+3. Cite the source document when providing information (use [Source: filename])
+4. Be concise but complete
+5. Use legal terminology appropriately
 
 Context:
 {context}

@@ -2,7 +2,7 @@ import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig, AxiosResp
 
 const api: AxiosInstance = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api',
-  timeout: 30000,
+  timeout: 15000, // 15s - fast feedback; long ops use async polling
   headers: {
     'Content-Type': 'application/json',
   },
@@ -31,6 +31,19 @@ api.interceptors.response.use(
   (response: AxiosResponse) => response.data,
   (error: AxiosError) => {
     console.error('API Error:', error.response?.data || error.message);
+    
+    // Auto-logout on invalid or expired token
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      const data = error.response.data as any;
+      if (data?.error?.includes('token') || data?.error?.includes('Token')) {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('token');
+          document.cookie = 'token=; path=/; max-age=0';
+          window.location.href = '/login';
+        }
+      }
+    }
+    
     return Promise.reject(error);
   }
 );

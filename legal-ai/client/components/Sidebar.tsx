@@ -12,6 +12,7 @@ import {
   X,
   Settings,
   User,
+  FileSignature
 } from "lucide-react";
 import { cn } from "../lib/utils/cn";
 import { getFeatures, FeatureFlags } from "../lib/features";
@@ -21,6 +22,7 @@ const allNavigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard, feature: null },
   { name: "Documents", href: "/documents", icon: FileText, feature: null },
   { name: "Upload", href: "/upload", icon: Upload, feature: null },
+  { name: "Draft Agreement", href: "/agreement/upload", icon: FileSignature, feature: null },
 ];
 
 interface SidebarProps {

@@ -160,6 +160,7 @@ async def get_llm_response(prompt: str, temperature: float = 0.7, max_retries: i
     Example: GROQ_API_KEY="key1,key2,key3"
     """
     errors = []
+    timeout_seconds = 10.0
     
     # Try Groq first (primary provider)
     if _configure_groq():
@@ -168,9 +169,13 @@ async def get_llm_response(prompt: str, temperature: float = 0.7, max_retries: i
             for attempt in range(max_retries):
                 try:
                     logger.info(f"Trying Groq (key {key_idx + 1}/{len(groq_keys)}, attempt {attempt + 1})")
-                    result = await _call_groq(prompt, temperature)
+                    result = await asyncio.wait_for(_call_groq(prompt, temperature), timeout=timeout_seconds)
                     logger.info("Groq succeeded")
                     return result
+                except asyncio.TimeoutError:
+                    err_msg = f"Groq key {key_idx + 1} attempt {attempt + 1} timed out after {timeout_seconds}s"
+                    logger.warning(err_msg)
+                    errors.append(err_msg)
                 except Exception as e:
                     err_msg = f"Groq key {key_idx + 1} attempt {attempt + 1} failed: {e}"
                     logger.warning(err_msg)
@@ -185,9 +190,13 @@ async def get_llm_response(prompt: str, temperature: float = 0.7, max_retries: i
             for attempt in range(max_retries):
                 try:
                     logger.info(f"Trying Gemini fallback (key {key_idx + 1}/{len(gemini_keys)}, attempt {attempt + 1})")
-                    result = await _call_gemini(prompt, temperature)
+                    result = await asyncio.wait_for(_call_gemini(prompt, temperature), timeout=timeout_seconds)
                     logger.info("Gemini fallback succeeded")
                     return result
+                except asyncio.TimeoutError:
+                    err_msg = f"Gemini key {key_idx + 1} attempt {attempt + 1} timed out after {timeout_seconds}s"
+                    logger.warning(err_msg)
+                    errors.append(err_msg)
                 except Exception as e:
                     err_msg = f"Gemini key {key_idx + 1} attempt {attempt + 1} failed: {e}"
                     logger.warning(err_msg)
@@ -198,7 +207,8 @@ async def get_llm_response(prompt: str, temperature: float = 0.7, max_retries: i
     # All providers failed
     error_summary = "\n".join(errors)
     logger.error(f"All LLM providers failed:\n{error_summary}")
-    return f"Unable to generate response. Please configure GROQ_API_KEY or GEMINI_API_KEY in your .env file."
+    return f"Unable to generate response. All AI providers are currently unavailable. Please try again later."
+
 
 
 async def simplify_text(text: str) -> str:

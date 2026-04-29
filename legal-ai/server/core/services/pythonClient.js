@@ -3,7 +3,7 @@ import { config } from '../config/env.js';
 
 const pythonApi = axios.create({
   baseURL: config.fastApiUrl,
-  timeout: 120000, // 120s for LLM operations
+  timeout: 15000, // 15s - unified timeout; long ops use async
   headers: {
     'Content-Type': 'application/json',
   },
@@ -52,10 +52,15 @@ export const callParser = async (fileBuffer, filename) => {
     formData.append('file', new Blob([fileBuffer]), filename);
     
     // Don't set Content-Type - let axios set it with proper boundary
-    const response = await pythonApi.post('/parse/', formData, {
-      timeout: 180000, // 3 minutes for parsing
-    });
-    return response.data;
+    try {
+      const response = await pythonApi.post('/parse/', formData, {
+        timeout: 15000, // 15s - parsing is now async
+      });
+      return response.data;
+    } catch (error) {
+      const detail = error.response?.data?.detail || error.response?.data?.message || error.message;
+      throw new Error(`Parser failed: ${detail}`);
+    }
   });
 };
 
@@ -119,6 +124,33 @@ export const callClause = async (documentId, clauseTypes) => {
     const response = await pythonApi.post('/clause/', {
       document_id: documentId,
       clause_types: clauseTypes,
+    });
+    return response.data;
+  });
+};
+
+export const callAsyncParser = async (fileBuffer, filename) => {
+  return withRetry(async () => {
+    const formData = new FormData();
+    formData.append('file', new Blob([fileBuffer]), filename);
+    const response = await pythonApi.post('/parse/upload-pdf', formData);
+    return response.data;
+  });
+};
+
+export const callParseStatus = async (jobId) => {
+  return withRetry(async () => {
+    const response = await pythonApi.get(`/parse/status/${jobId}`);
+    return response.data;
+  });
+};
+
+export const callAnalyzeLaws = async (documentId, text, jurisdiction = null) => {
+  return withRetry(async () => {
+    const response = await pythonApi.post('/laws/analyze', {
+      document_id: documentId,
+      text,
+      jurisdiction
     });
     return response.data;
   });

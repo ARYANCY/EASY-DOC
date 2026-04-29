@@ -1,32 +1,33 @@
-from app.features.embedding.embedding_service import embed_query
-from app.db.faiss_store import search_similar, search_similar_by_document
+from app.core.embeddings import get_embedding_service
+from app.core.vector_db import get_vector_db
 from app.db.connection import get_db
 
-
 async def search_documents(query: str, document_id: str | None = None, top_k: int = 5):
-    """Search for relevant document chunks."""
+    """Search for relevant document chunks using ChromaDB."""
     db = get_db()
     
     # Embed the query
-    query_embedding = await embed_query(query)
+    embedding_svc = get_embedding_service()
+    query_embedding = await embedding_svc.encode_query(query)
     
     # Search in vector store
-    if document_id:
-        # Search within specific document
-        results = await search_similar_by_document(query_embedding, document_id, k=top_k)
-    else:
-        # Search across all documents
-        results = await search_similar(query_embedding, k=top_k)
+    vector_db = get_vector_db()
+    where_filter = {"document_id": document_id} if document_id else None
     
-    # Enrich results with document info
+    results = vector_db.search(query_embedding, top_k=top_k, where_filter=where_filter)
+    
+    # Enrich results with document info from MongoDB
     formatted = []
-    for text, score, doc_id in results:
+    for r in results:
+        doc_id = r["metadata"].get("document_id")
+        text = r["text"]
+        
         # Get document info from MongoDB
-        doc_info = await db.documents.find_one({"documentId": doc_id})
+        doc_info = await db.documents.find_one({"documentId": doc_id}) if doc_id else None
         
         formatted.append({
             "text": text,
-            "score": float(score),
+            "score": r["score"],
             "documentId": doc_id,
             "filename": doc_info.get("filename", "Unknown") if doc_info else "Unknown",
             "snippet": text[:200] + "..." if len(text) > 200 else text

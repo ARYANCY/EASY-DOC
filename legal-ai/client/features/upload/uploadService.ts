@@ -14,6 +14,11 @@ export const uploadDocument = async (file: File): Promise<UploadResponse> => {
   formData.append('file', file);
 
   // Don't set Content-Type - let browser set it with proper boundary
-  const response = await api.post('/upload', formData);
-  return response as unknown as UploadResponse;
+  try {
+    const response = await api.post('/upload', formData, { timeout: 180000 });
+    return response as unknown as UploadResponse;
+  } catch (error: any) {
+    const message = error.response?.data?.message || error.response?.data?.error || error.message || 'Upload failed';
+    throw new Error(message);
+  }
 };

@@ -91,13 +91,22 @@ export default function DocumentsPage() {
                 <p className="text-xs font-bold uppercase tracking-wider text-[var(--vscode-text-muted)] mb-1">Library</p>
                 <h1 className="text-2xl font-light text-[var(--vscode-text)]">All Documents</h1>
               </div>
-              <Link
-                href="/upload"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--vscode-accent)] text-white text-sm hover:bg-[var(--vscode-accent-hover)] transition-colors"
-              >
-                <Plus className="w-4 h-4" />
-                Upload New
-              </Link>
+              <div className="flex items-center gap-3">
+                <Link
+                  href="/agreement/upload"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--vscode-sidebar)] border border-[var(--vscode-border)] text-[var(--vscode-text)] text-sm hover:bg-[var(--vscode-hover)] transition-colors"
+                >
+                  <Plus className="w-4 h-4 text-[#0e639c]" />
+                  Draft New Agreement
+                </Link>
+                <Link
+                  href="/upload"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--vscode-accent)] text-white text-sm hover:bg-[var(--vscode-accent-hover)] transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  Upload New
+                </Link>
+              </div>
             </div>
 
             {error && (

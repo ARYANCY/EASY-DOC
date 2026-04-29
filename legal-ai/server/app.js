@@ -12,6 +12,8 @@ import simplifyRoutes from './features/simplify/simplify.route.js';
 import searchRoutes from './features/search/search.route.js';
 import authRoutes from './features/auth/auth.route.js';
 import clauseRoutes from './features/clause/clause.route.js';
+import lawsRoutes from './features/laws/laws.route.js';
+import agreementRoutes from './features/agreement/agreement.route.js';
 
 dotenv.config();
 
@@ -27,7 +29,7 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 }));
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
 
 // Health check
 app.get('/health', (req, res) => {
@@ -44,11 +46,13 @@ app.use('/api/simplify', simplifyRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/clause', clauseRoutes);
+app.use('/api/laws', lawsRoutes);
+app.use('/api/agreement', agreementRoutes);
 
 // Error handler
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(500).json({ error: 'Something went wrong!' });
+  res.status(500).json({ error: 'Something went wrong!', message: err.message, stack: err.stack });
 });
 
 app.listen(PORT, () => {

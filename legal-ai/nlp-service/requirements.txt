@@ -20,6 +20,7 @@ numpy>=1.24.0
 # RAG + Embeddings
 sentence-transformers>=2.2.2
 faiss-cpu>=1.7.4
+chromadb>=0.4.18
 
 # Database
 motor>=3.3.0
@@ -35,3 +36,7 @@ httpx>=0.25.0
 python-dotenv>=1.0.0
 python-magic>=0.4.27
 tenacity>=8.2.0
+python-docx>=0.8.11
+tqdm>=4.66.1
+slowapi>=0.1.9
+circuitbreaker>=1.4.0

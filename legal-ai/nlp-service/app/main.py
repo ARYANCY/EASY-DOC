@@ -11,6 +11,8 @@ from app.features.search import search_route
 from app.features.chat import chat_route
 from app.features.risk import risk_route
 from app.features.clause import clause_route
+from app.features.laws import laws_route
+from app.features.agreement import agreement_route
 
 
 @asynccontextmanager
@@ -42,6 +44,9 @@ app.include_router(chat_route.router, prefix="/chat", tags=["chat"])
 app.include_router(risk_route.router, prefix="/risk", tags=["risk"])
 app.include_router(simplify_route.router, prefix="/simplify", tags=["simplify"])
 app.include_router(clause_route.router, prefix="/clause", tags=["clause"])
+app.include_router(laws_route.router, prefix="/laws", tags=["laws"])
+app.include_router(agreement_route.router, prefix="/agreement", tags=["agreement"])
+
 
 
 @app.get("/health")
