@@ -35,16 +35,16 @@ export default function PanelToggles({
 
   return (
     <div className={cn("flex items-center gap-1", className)}>
-      <div className="hidden sm:flex items-center bg-gray-100 rounded-lg p-1">
+      <div className="hidden sm:flex items-center bg-[#f7f4ef] border border-[#e8e1d8] p-1">
         {buttons.map((btn) => (
           <button
             key={btn.id}
             onClick={btn.onClick}
             className={cn(
-              "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-150",
+              "flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em] transition-all duration-150",
               btn.active
-                ? "bg-purple-600 text-white shadow-sm"
-                : "text-gray-600 hover:bg-white hover:shadow-sm"
+                ? "bg-[#181715] text-[#fffdf9] shadow-sm"
+                : "text-[#777169] hover:bg-[#fffdf9] hover:text-[#181715]"
             )}
             title={btn.label}
           >
@@ -56,17 +56,17 @@ export default function PanelToggles({
 
       {/* Mobile dropdown */}
       <div className="sm:hidden relative group">
-        <button className="p-2 bg-gray-100 rounded-lg hover:bg-gray-200">
-          <PanelRight className="w-5 h-5 text-gray-600" />
+        <button className="p-2 bg-[#f7f4ef] border border-[#e8e1d8] hover:bg-[#fffdf9]">
+          <PanelRight className="w-5 h-5 text-[#181715]" />
         </button>
-        <div className="absolute right-0 top-full mt-2 w-40 bg-white rounded-lg shadow-lg border border-gray-200 py-1 hidden group-hover:block z-50">
+        <div className="absolute right-0 top-full mt-2 w-44 bg-[#fffdf9] shadow-lg border border-[#e8e1d8] py-1 hidden group-hover:block z-50">
           {buttons.map((btn) => (
             <button
               key={btn.id}
               onClick={btn.onClick}
               className={cn(
                 "w-full flex items-center gap-2 px-4 py-2 text-sm text-left",
-                btn.active ? "bg-purple-50 text-purple-700" : "text-gray-700 hover:bg-gray-50"
+                btn.active ? "bg-[#181715] text-[#fffdf9]" : "text-[#5f5952] hover:bg-[#f7f4ef]"
               )}
             >
               <btn.icon className="w-4 h-4" />

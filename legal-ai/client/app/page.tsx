@@ -84,33 +84,44 @@ export default function DashboardPage() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen editorial-shell">
       <Sidebar />
-      <div className="lg:ml-72 min-h-screen flex flex-col">
+      <div className="lg:ml-64 min-h-screen flex flex-col">
         <Header />
         <main className="flex-1 p-4 sm:p-6 lg:p-8">
           <div className="max-w-7xl mx-auto">
             {/* Header Section */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+            <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_0.6fr] gap-6 mb-8">
               <div>
-                <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
-                <p className="text-slate-500 mt-1">Welcome back, {user?.name || 'User'}</p>
+                <p className="editorial-label">Legal Workroom</p>
+                <h1 className="font-editorial text-5xl sm:text-6xl lg:text-7xl leading-[0.92] text-[#181715] mt-3">
+                  Review with editorial precision.
+                </h1>
+                <p className="text-[#777169] mt-5 max-w-2xl">
+                  Welcome back, {user?.name || 'User'}. Your contracts, risk notes, and AI analysis are arranged like a premium dossier.
+                </p>
               </div>
-              <div className="flex gap-3">
+              <div className="editorial-card p-5 flex flex-col justify-between min-h-48">
+                <div>
+                  <p className="editorial-label">Current Edit</p>
+                  <p className="font-editorial text-3xl mt-2">Spring review</p>
+                </div>
+                <div className="flex flex-col sm:flex-row lg:flex-col gap-3">
                 <Link
                   href="/upload"
-                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all shadow-sm hover:shadow-md font-medium text-sm"
+                  className="editorial-button"
                 >
                   <Plus className="w-4 h-4" />
                   Upload Document
                 </Link>
                 <Link
                   href="/search"
-                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-white text-slate-700 border border-slate-200 rounded-lg hover:bg-slate-50 transition-all shadow-sm font-medium text-sm"
+                  className="editorial-button-light"
                 >
                   <Search className="w-4 h-4" />
                   Search
                 </Link>
+                </div>
               </div>
             </div>
 
@@ -131,85 +142,85 @@ export default function DashboardPage() {
             ) : (
               <>
                 {/* Stats Cards Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                   {/* Total Documents */}
-                  <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-all group">
+                  <div className="editorial-card p-6 transition-all group">
                     <div className="flex items-start justify-between">
                       <div>
-                        <p className="text-sm font-medium text-slate-500 mb-1">Total Documents</p>
-                        <p className="text-3xl font-bold text-slate-900">{stats?.totalDocuments || 0}</p>
-                        <p className="text-xs text-slate-400 mt-2">All time uploads</p>
+                        <p className="editorial-label mb-3">Documents</p>
+                        <p className="font-editorial text-5xl text-[#181715]">{stats?.totalDocuments || 0}</p>
+                        <p className="text-xs text-[#777169] mt-2">All time uploads</p>
                       </div>
-                      <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center group-hover:bg-blue-100 transition-colors">
-                        <FileText className="w-6 h-6 text-blue-600" />
+                      <div className="w-12 h-12 bg-[#181715] flex items-center justify-center transition-colors">
+                        <FileText className="w-6 h-6 text-[#fffdf9]" />
                       </div>
                     </div>
                   </div>
 
                   {/* Analyzed This Month */}
-                  <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-all group">
+                  <div className="editorial-card p-6 transition-all group">
                     <div className="flex items-start justify-between">
                       <div>
-                        <p className="text-sm font-medium text-slate-500 mb-1">Analyzed This Month</p>
-                        <p className="text-3xl font-bold text-slate-900">{stats?.analyzedThisMonth || 0}</p>
-                        <p className="text-xs text-green-600 mt-2 flex items-center gap-1">
+                        <p className="editorial-label mb-3">This Month</p>
+                        <p className="font-editorial text-5xl text-[#181715]">{stats?.analyzedThisMonth || 0}</p>
+                        <p className="text-xs text-[#777169] mt-2 flex items-center gap-1">
                           <Activity className="w-3 h-3" />
                           Active processing
                         </p>
                       </div>
-                      <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center group-hover:bg-emerald-100 transition-colors">
-                        <TrendingUp className="w-6 h-6 text-emerald-600" />
+                      <div className="w-12 h-12 bg-[#f0ebe3] flex items-center justify-center transition-colors">
+                        <TrendingUp className="w-6 h-6 text-[#181715]" />
                       </div>
                     </div>
                   </div>
 
                   {/* Average Risk Score */}
-                  <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-all group">
+                  <div className="editorial-card p-6 transition-all group">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <p className="text-sm font-medium text-slate-500 mb-1">Avg Risk Score</p>
+                        <p className="editorial-label mb-3">Avg Risk</p>
                         <div className="flex items-baseline gap-2">
-                          <p className="text-3xl font-bold text-slate-900">{stats?.averageRiskScore || 0}</p>
-                          <span className="text-sm text-slate-400">/100</span>
+                          <p className="font-editorial text-5xl text-[#181715]">{stats?.averageRiskScore || 0}</p>
+                          <span className="text-sm text-[#777169]">/100</span>
                         </div>
-                        <div className="mt-3 h-2 bg-slate-100 rounded-full overflow-hidden">
+                        <div className="mt-3 h-1.5 bg-[#eee7dc] overflow-hidden">
                           <div 
                             className={`h-full rounded-full transition-all duration-500 ${getRiskColor(stats?.averageRiskScore || 0)}`}
                             style={{ width: `${stats?.averageRiskScore || 0}%` }}
                           />
                         </div>
                       </div>
-                      <div className="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center group-hover:bg-amber-100 transition-colors ml-3">
-                        <Shield className="w-6 h-6 text-amber-600" />
+                      <div className="w-12 h-12 bg-[#f0ebe3] flex items-center justify-center transition-colors ml-3">
+                        <Shield className="w-6 h-6 text-[#a77a35]" />
                       </div>
                     </div>
                   </div>
 
                   {/* Pending Review */}
-                  <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-all group">
+                  <div className="editorial-card p-6 transition-all group">
                     <div className="flex items-start justify-between">
                       <div>
-                        <p className="text-sm font-medium text-slate-500 mb-1">Pending Review</p>
-                        <p className="text-3xl font-bold text-slate-900">{stats?.pendingReview || 0}</p>
-                        <p className="text-xs text-slate-400 mt-2">Requires attention</p>
+                        <p className="editorial-label mb-3">Pending</p>
+                        <p className="font-editorial text-5xl text-[#181715]">{stats?.pendingReview || 0}</p>
+                        <p className="text-xs text-[#777169] mt-2">Requires attention</p>
                       </div>
-                      <div className="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center group-hover:bg-purple-100 transition-colors">
-                        <Clock className="w-6 h-6 text-purple-600" />
+                      <div className="w-12 h-12 bg-[#181715] flex items-center justify-center transition-colors">
+                        <Clock className="w-6 h-6 text-[#fffdf9]" />
                       </div>
                     </div>
                   </div>
                 </div>
 
                 {/* Recent Documents Section */}
-                <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-                  <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+                <div className="editorial-card overflow-hidden">
+                  <div className="px-6 py-5 border-b border-[#e8e1d8] flex items-center justify-between">
                     <div>
-                      <h2 className="text-lg font-semibold text-slate-900">Recent Documents</h2>
-                      <p className="text-sm text-slate-500 mt-0.5">Latest uploads and analysis</p>
+                      <p className="editorial-label">Recent Documents</p>
+                      <h2 className="font-editorial text-3xl text-[#181715] mt-1">Latest dossiers</h2>
                     </div>
                     <Link 
                       href="/documents"
-                      className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
+                      className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-[0.14em] text-[#181715] hover:text-[#a77a35] transition-colors"
                     >
                       View all
                       <ArrowRight className="w-4 h-4" />
@@ -218,42 +229,42 @@ export default function DashboardPage() {
 
                   {documents.length === 0 ? (
                     <div className="px-6 py-12 text-center">
-                      <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                        <FileText className="w-8 h-8 text-slate-300" />
+                      <div className="w-16 h-16 bg-[#f0ebe3] flex items-center justify-center mx-auto mb-4">
+                        <FileText className="w-8 h-8 text-[#777169]" />
                       </div>
-                      <h3 className="text-slate-900 font-medium mb-1">No documents yet</h3>
-                      <p className="text-slate-500 text-sm mb-4">Upload your first document to get started</p>
+                      <h3 className="font-editorial text-2xl text-[#181715] mb-1">No documents yet</h3>
+                      <p className="text-[#777169] text-sm mb-4">Upload your first document to get started</p>
                       <Link
                         href="/upload"
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                        className="editorial-button"
                       >
                         <Plus className="w-4 h-4" />
                         Upload Document
                       </Link>
                     </div>
                   ) : (
-                    <div className="divide-y divide-slate-100">
+                    <div className="divide-y divide-[#e8e1d8]">
                       {documents.map((doc) => (
                         <Link
                           key={doc.id}
-                          href={`/history/${doc.id}`}
-                          className="flex items-center gap-4 px-6 py-4 hover:bg-slate-50 transition-colors group"
+                          href={`/document/${doc.id}`}
+                          className="flex items-center gap-4 px-6 py-4 hover:bg-[#f7f4ef] transition-colors group"
                         >
-                          <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${getRiskBgColor(doc.risk || 0)}`}>
-                            <FileText className="w-5 h-5 text-slate-600" />
+                          <div className={`w-12 h-12 flex items-center justify-center flex-shrink-0 ${getRiskBgColor(doc.risk || 0)}`}>
+                            <FileText className="w-5 h-5 text-[#181715]" />
                           </div>
                           
                           <div className="flex-1 min-w-0">
-                            <h3 className="text-sm font-semibold text-slate-900 truncate group-hover:text-blue-600 transition-colors">
+                            <h3 className="text-sm font-semibold text-[#181715] truncate group-hover:text-[#a77a35] transition-colors">
                               {doc.name}
                             </h3>
-                            <p className="text-xs text-slate-500 mt-0.5">{formatDate(doc.date)}</p>
+                            <p className="text-xs text-[#777169] mt-0.5">{formatDate(doc.date)}</p>
                           </div>
 
                           <div className="flex items-center gap-3">
                             {doc.risk !== null && (
                               <div className="flex items-center gap-2">
-                                <span className="text-xs text-slate-500">Risk:</span>
+                                <span className="text-xs text-[#777169]">Risk:</span>
                                 <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
                                   doc.risk > 70 ? "bg-red-100 text-red-700" :
                                   doc.risk > 40 ? "bg-amber-100 text-amber-700" :
@@ -272,8 +283,8 @@ export default function DashboardPage() {
                               {doc.status}
                             </span>
 
-                            <button className="w-8 h-8 rounded-lg hover:bg-slate-200 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">
-                              <MoreHorizontal className="w-4 h-4 text-slate-400" />
+                            <button className="w-8 h-8 hover:bg-[#eee7dc] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">
+                              <MoreHorizontal className="w-4 h-4 text-[#777169]" />
                             </button>
                           </div>
                         </Link>
@@ -286,40 +297,40 @@ export default function DashboardPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
                   <Link 
                     href="/upload"
-                    className="flex items-center gap-4 p-5 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl text-white hover:from-blue-600 hover:to-blue-700 transition-all shadow-lg hover:shadow-xl"
+                    className="flex items-center gap-4 p-5 bg-[#181715] text-[#fffdf9] transition-all shadow-lg hover:-translate-y-1"
                   >
-                    <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
+                    <div className="w-12 h-12 bg-[#fffdf9]/10 flex items-center justify-center backdrop-blur-sm">
                       <Plus className="w-6 h-6" />
                     </div>
                     <div>
                       <h3 className="font-semibold">Upload Document</h3>
-                      <p className="text-sm text-blue-100 mt-0.5">Add new legal documents</p>
+                      <p className="text-sm text-[#fffdf9]/60 mt-0.5">Add new legal documents</p>
                     </div>
                   </Link>
 
                   <Link 
                     href="/search"
-                    className="flex items-center gap-4 p-5 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl text-white hover:from-emerald-600 hover:to-emerald-700 transition-all shadow-lg hover:shadow-xl"
+                    className="flex items-center gap-4 p-5 bg-[#fffdf9] border border-[#e8e1d8] text-[#181715] transition-all shadow-lg hover:-translate-y-1"
                   >
-                    <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
+                    <div className="w-12 h-12 bg-[#f0ebe3] flex items-center justify-center backdrop-blur-sm">
                       <Search className="w-6 h-6" />
                     </div>
                     <div>
                       <h3 className="font-semibold">Search Documents</h3>
-                      <p className="text-sm text-emerald-100 mt-0.5">Find specific clauses</p>
+                      <p className="text-sm text-[#777169] mt-0.5">Find specific clauses</p>
                     </div>
                   </Link>
 
                   <Link 
                     href="/history"
-                    className="flex items-center gap-4 p-5 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl text-white hover:from-purple-600 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl"
+                    className="flex items-center gap-4 p-5 bg-[#f0ebe3] border border-[#e8e1d8] text-[#181715] transition-all shadow-lg hover:-translate-y-1"
                   >
-                    <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
+                    <div className="w-12 h-12 bg-[#fffdf9] flex items-center justify-center backdrop-blur-sm">
                       <Clock className="w-6 h-6" />
                     </div>
                     <div>
                       <h3 className="font-semibold">View History</h3>
-                      <p className="text-sm text-purple-100 mt-0.5">Past analyses & chats</p>
+                      <p className="text-sm text-[#777169] mt-0.5">Past analyses & chats</p>
                     </div>
                   </Link>
                 </div>

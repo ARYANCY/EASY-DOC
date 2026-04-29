@@ -60,17 +60,17 @@ export default function RiskPanel({ riskScore, flags, className }: RiskPanelProp
   };
 
   return (
-    <div className={cn('bg-white rounded-xl border border-gray-200 overflow-hidden', className)}>
+    <div className={cn('editorial-card overflow-hidden', className)}>
       {/* Header */}
-      <div className="px-5 py-4 border-b border-gray-100">
+      <div className="px-5 py-4 border-b border-[#e8e1d8]">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <h2 className="font-semibold text-gray-900">Risk Highlights</h2>
-            <Info className="w-4 h-4 text-gray-400" />
+            <h2 className="font-editorial text-2xl text-[#181715]">Risk Highlights</h2>
+            <Info className="w-4 h-4 text-[#777169]" />
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-500">Risk Score</span>
-            <div className={cn('px-3 py-1 rounded-full', getScoreBg(riskScore))}>
+            <span className="editorial-label">Risk Score</span>
+            <div className={cn('px-3 py-1', getScoreBg(riskScore))}>
               <span className={cn('font-bold', getScoreColor(riskScore))}>{riskScore}</span>
               <span className="text-gray-500 text-sm">/100</span>
             </div>
@@ -115,8 +115,8 @@ export default function RiskPanel({ riskScore, flags, className }: RiskPanelProp
       </div>
 
       {/* View All Link */}
-      <div className="px-5 py-3 border-t border-gray-100">
-        <button className="flex items-center gap-1 text-sm text-purple-600 hover:text-purple-700 font-medium">
+      <div className="px-5 py-3 border-t border-[#e8e1d8]">
+        <button className="flex items-center gap-1 text-xs font-bold uppercase tracking-[0.14em] text-[#181715] hover:text-[#a77a35]">
           View All Risks
           <ChevronRight className="w-4 h-4" />
         </button>

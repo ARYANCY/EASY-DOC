@@ -18,26 +18,26 @@ export default function DocumentSummary({
   className,
 }: DocumentSummaryProps) {
   return (
-    <div className={`bg-white rounded-xl border border-gray-200 p-6 ${className}`}>
+    <div className={`editorial-card p-6 ${className}`}>
       <div className="flex items-center gap-2 mb-4">
-        <Sparkles className="w-5 h-5 text-purple-600" />
-        <h2 className="font-semibold text-gray-900">Document Summary (AI Generated)</h2>
+        <Sparkles className="w-5 h-5 text-[#a77a35]" />
+        <h2 className="font-editorial text-2xl text-[#181715]">Document Summary</h2>
       </div>
 
-      <p className="text-sm text-gray-600 leading-relaxed mb-6">{summary}</p>
+      <p className="text-sm text-[#5f5952] leading-7 mb-6">{summary}</p>
 
-      <div className="grid grid-cols-3 gap-4 pt-4 border-t border-gray-100">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-[#e8e1d8]">
         <div>
-          <p className="text-xs text-gray-500 uppercase tracking-wide">Total Pages</p>
-          <p className="text-lg font-semibold text-gray-900">{totalPages}</p>
+          <p className="editorial-label">Total Pages</p>
+          <p className="font-editorial text-2xl text-[#181715]">{totalPages}</p>
         </div>
         <div>
-          <p className="text-xs text-gray-500 uppercase tracking-wide">Total Words</p>
-          <p className="text-lg font-semibold text-gray-900">{totalWords.toLocaleString()}</p>
+          <p className="editorial-label">Total Words</p>
+          <p className="font-editorial text-2xl text-[#181715]">{totalWords.toLocaleString()}</p>
         </div>
         <div>
-          <p className="text-xs text-gray-500 uppercase tracking-wide">Analyzed At</p>
-          <p className="text-sm font-medium text-gray-900">{analyzedAt}</p>
+          <p className="editorial-label">Analyzed At</p>
+          <p className="text-sm font-medium text-[#181715]">{analyzedAt}</p>
         </div>
       </div>
     </div>

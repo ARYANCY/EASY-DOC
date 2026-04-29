@@ -36,17 +36,18 @@ export default function SearchPage() {
     setUser(currentUser);
   }, [router]);
 
-  const handleSearch = async (e?: React.FormEvent) => {
+  const handleSearch = async (e?: React.FormEvent, queryOverride?: string) => {
     e?.preventDefault();
     
-    if (!query.trim()) return;
+    const searchQuery = (queryOverride ?? query).trim();
+    if (!searchQuery) return;
     
     try {
       setLoading(true);
       setError(null);
       setHasSearched(true);
       
-      const response = await searchDocuments(query);
+      const response = await searchDocuments(searchQuery);
       
       // Backend now returns enriched results with documentId, filename, snippet
       const transformedResults: SearchResult[] = response.results.map((result: any, index: number) => ({
@@ -77,21 +78,22 @@ export default function SearchPage() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen editorial-shell">
       <Sidebar />
       <div className="lg:ml-64 min-h-screen flex flex-col">
         <Header />
         <main className="flex-1 p-6">
-          <div className="max-w-4xl mx-auto">
+          <div className="max-w-5xl mx-auto">
             <div className="mb-8">
-              <h1 className="text-2xl font-bold text-gray-900">Search Documents</h1>
-              <p className="text-gray-500 mt-1">
-                Search across all your analyzed documents
+              <p className="editorial-label">Archive Search</p>
+              <h1 className="font-editorial text-5xl sm:text-6xl text-[#181715] mt-3">Find the clause.</h1>
+              <p className="text-[#777169] mt-3 max-w-xl">
+                Search across analyzed documents with a clean, catalog-style result view.
               </p>
             </div>
 
             {/* Search Bar */}
-            <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
+            <div className="editorial-card p-5 sm:p-6 mb-6">
               <form onSubmit={handleSearch} className="relative">
                 <div className="flex items-center gap-4">
                   <div className="flex-1 relative">
@@ -101,13 +103,13 @@ export default function SearchPage() {
                       placeholder="Search for clauses, terms, or keywords..."
                       value={query}
                       onChange={(e) => setQuery(e.target.value)}
-                      className="w-full pl-12 pr-10 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-lg"
+                      className="w-full pl-12 pr-10 py-3 border border-[#e8e1d8] bg-[#fffdf9] focus:ring-1 focus:ring-[#181715] focus:border-[#181715] text-lg"
                     />
                     {query && (
                       <button
                         type="button"
                         onClick={clearSearch}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#777169] hover:text-[#181715]"
                       >
                         <X className="w-5 h-5" />
                       </button>
@@ -116,7 +118,7 @@ export default function SearchPage() {
                   <button
                     type="submit"
                     disabled={loading || !query.trim()}
-                    className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                    className="editorial-button disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {loading ? (
                       <Loader2 className="w-5 h-5 animate-spin" />
@@ -128,16 +130,16 @@ export default function SearchPage() {
               </form>
 
               {/* Filters */}
-              <div className="flex items-center gap-3 mt-4 pt-4 border-t border-gray-100">
-                <Filter className="w-4 h-4 text-gray-400" />
-                <span className="text-sm text-gray-500">Filters:</span>
-                <button className="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200">
+              <div className="flex flex-wrap items-center gap-3 mt-4 pt-4 border-t border-[#e8e1d8]">
+                <Filter className="w-4 h-4 text-[#777169]" />
+                <span className="editorial-label">Filters</span>
+                <button className="px-3 py-1.5 text-xs uppercase tracking-[0.12em] border border-[#181715] bg-[#181715] text-[#fffdf9]">
                   All Documents
                 </button>
-                <button className="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200">
+                <button className="px-3 py-1.5 text-xs uppercase tracking-[0.12em] border border-[#e8e1d8] bg-[#fffdf9] text-[#5f5952] hover:border-[#181715]">
                   High Risk
                 </button>
-                <button className="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200">
+                <button className="px-3 py-1.5 text-xs uppercase tracking-[0.12em] border border-[#e8e1d8] bg-[#fffdf9] text-[#5f5952] hover:border-[#181715]">
                   Recent
                 </button>
               </div>
@@ -152,38 +154,38 @@ export default function SearchPage() {
 
             {/* Results */}
             {hasSearched && !loading && (
-              <div className="bg-white rounded-xl shadow-sm">
-                <div className="px-6 py-4 border-b border-gray-100">
-                  <h2 className="text-lg font-semibold text-gray-900">
+              <div className="editorial-card">
+                <div className="px-6 py-4 border-b border-[#e8e1d8]">
+                  <h2 className="font-editorial text-3xl text-[#181715]">
                     Search Results {results.length > 0 && `(${results.length})`}
                   </h2>
                 </div>
                 
                 {results.length === 0 ? (
-                  <div className="px-6 py-12 text-center text-gray-500">
-                    <Search className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                  <div className="px-6 py-12 text-center text-[#777169]">
+                    <Search className="w-12 h-12 mx-auto mb-4 text-[#c7bcae]" />
                     <p>No results found for &quot;{query}&quot;</p>
                     <p className="text-sm mt-1">Try different keywords or check your spelling</p>
                   </div>
                 ) : (
-                  <div className="divide-y divide-gray-100">
+                  <div className="divide-y divide-[#e8e1d8]">
                     {results.map((result) => (
                       <Link
                         key={result.id}
-                        href={`/history/${result.documentId}`}
-                        className="px-6 py-4 block hover:bg-gray-50 transition-colors"
+                        href={`/document/${result.documentId}`}
+                        className="px-6 py-4 block hover:bg-[#f7f4ef] transition-colors"
                       >
                         <div className="flex items-start gap-4">
-                          <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center shrink-0">
-                            <FileText className="w-5 h-5 text-purple-600" />
+                          <div className="w-10 h-10 bg-[#181715] flex items-center justify-center shrink-0">
+                            <FileText className="w-5 h-5 text-[#fffdf9]" />
                           </div>
                           <div className="flex-1">
-                            <h3 className="font-medium text-gray-900">{result.filename}</h3>
-                            <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                            <h3 className="font-medium text-[#181715]">{result.filename}</h3>
+                            <p className="text-sm text-[#5f5952] mt-1 line-clamp-2">
                               {result.snippet}
                             </p>
                             <div className="flex items-center gap-3 mt-2">
-                              <span className="text-xs text-gray-500">
+                              <span className="text-xs text-[#777169]">
                                 Relevance: {Math.round(result.score * 100)}%
                               </span>
                             </div>
@@ -199,27 +201,27 @@ export default function SearchPage() {
 
             {/* Empty State - Before Search */}
             {!hasSearched && !loading && (
-              <div className="bg-white rounded-xl shadow-sm p-12 text-center">
-                <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Search className="w-8 h-8 text-purple-600" />
+              <div className="editorial-card p-12 text-center">
+                <div className="w-16 h-16 bg-[#181715] flex items-center justify-center mx-auto mb-4">
+                  <Search className="w-8 h-8 text-[#fffdf9]" />
                 </div>
-                <h2 className="text-lg font-semibold text-gray-900 mb-2">
+                <h2 className="font-editorial text-3xl text-[#181715] mb-2">
                   Search Your Documents
                 </h2>
-                <p className="text-gray-500 max-w-md mx-auto">
+                <p className="text-[#777169] max-w-md mx-auto">
                   Enter keywords to search across all your uploaded and analyzed documents. 
                   Find specific clauses, terms, or sections quickly.
                 </p>
                 <div className="flex flex-wrap justify-center gap-2 mt-6">
-                  <span className="text-sm text-gray-400">Try searching for:</span>
+                  <span className="text-sm text-[#777169]">Try searching for:</span>
                   {["confidentiality", "termination", "liability", "payment"].map((term) => (
                     <button
                       key={term}
                       onClick={() => {
                         setQuery(term);
-                        handleSearch();
+                        handleSearch(undefined, term);
                       }}
-                      className="px-3 py-1 text-sm bg-purple-50 text-purple-600 rounded-full hover:bg-purple-100"
+                      className="px-3 py-1 text-sm border border-[#e8e1d8] bg-[#fffdf9] text-[#181715] hover:border-[#181715]"
                     >
                       {term}
                     </button>

@@ -101,7 +101,7 @@ export default function HistoryPage() {
                   documents.map((doc) => (
                     <Link
                       key={doc.id}
-                      href={`/history/${doc.id}`}
+                      href={`/document/${doc.id}`}
                       className="block bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow"
                     >
                       <div className="flex items-start justify-between">

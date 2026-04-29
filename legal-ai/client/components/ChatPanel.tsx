@@ -69,14 +69,14 @@ export default function ChatPanel({ documentId, className }: ChatPanelProps) {
   };
 
   return (
-    <div className={cn('bg-white rounded-xl border border-gray-200 flex flex-col h-full', className)}>
+    <div className={cn('editorial-card flex flex-col h-full', className)}>
       {/* Header */}
-      <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+      <div className="px-5 py-4 border-b border-[#e8e1d8] flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-purple-600" />
-          <h2 className="font-semibold text-gray-900">AI Legal Assistant</h2>
+          <Sparkles className="w-5 h-5 text-[#a77a35]" />
+          <h2 className="font-editorial text-2xl text-[#181715]">AI Legal Assistant</h2>
         </div>
-        <button className="text-gray-400 hover:text-gray-600">
+        <button className="text-[#777169] hover:text-[#181715]">
           <X className="w-5 h-5" />
         </button>
       </div>
@@ -95,8 +95,8 @@ export default function ChatPanel({ documentId, className }: ChatPanelProps) {
               className={cn(
                 'w-8 h-8 rounded-full flex items-center justify-center shrink-0',
                 message.role === 'user'
-                  ? 'bg-purple-600 text-white'
-                  : 'bg-purple-100 text-purple-600'
+                  ? 'bg-[#181715] text-[#fffdf9]'
+                  : 'bg-[#f0ebe3] text-[#181715]'
               )}
             >
               {message.role === 'user' ? (
@@ -109,8 +109,8 @@ export default function ChatPanel({ documentId, className }: ChatPanelProps) {
               className={cn(
                 'max-w-[80%] p-3 rounded-lg text-sm leading-relaxed',
                 message.role === 'user'
-                  ? 'bg-purple-600 text-white rounded-br-none'
-                  : 'bg-gray-100 text-gray-800 rounded-bl-none'
+                  ? 'bg-[#181715] text-[#fffdf9]'
+                  : 'bg-[#f7f4ef] text-[#3f3a35]'
               )}
             >
               {message.content}
@@ -119,14 +119,14 @@ export default function ChatPanel({ documentId, className }: ChatPanelProps) {
         ))}
         {loading && (
           <div className="flex gap-3">
-            <div className="w-8 h-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center">
+            <div className="w-8 h-8 bg-[#f0ebe3] text-[#181715] flex items-center justify-center">
               <Bot className="w-4 h-4" />
             </div>
-            <div className="bg-gray-100 p-3 rounded-lg rounded-bl-none">
+            <div className="bg-[#f7f4ef] p-3">
               <div className="flex gap-1">
-                <span className="w-2 h-2 bg-purple-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                <span className="w-2 h-2 bg-purple-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                <span className="w-2 h-2 bg-purple-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                <span className="w-2 h-2 bg-[#181715] rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                <span className="w-2 h-2 bg-[#181715] rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                <span className="w-2 h-2 bg-[#181715] rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
               </div>
             </div>
           </div>
@@ -136,7 +136,7 @@ export default function ChatPanel({ documentId, className }: ChatPanelProps) {
 
       {/* Suggested Questions */}
       {messages.length <= 1 && (
-        <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/50">
+        <div className="px-5 py-3 border-t border-[#e8e1d8] bg-[#f7f4ef]/60">
           <div className="flex flex-wrap gap-2">
             {[
               'What happens if the other party breaches the agreement?',
@@ -147,7 +147,7 @@ export default function ChatPanel({ documentId, className }: ChatPanelProps) {
                 onClick={() => {
                   setInput(question);
                 }}
-                className="px-3 py-1.5 text-xs bg-white border border-purple-200 text-purple-700 rounded-full hover:bg-purple-50 transition-colors"
+                className="px-3 py-1.5 text-xs bg-[#fffdf9] border border-[#e8e1d8] text-[#181715] hover:border-[#181715] transition-colors"
               >
                 {question}
               </button>
@@ -157,7 +157,7 @@ export default function ChatPanel({ documentId, className }: ChatPanelProps) {
       )}
 
       {/* Input */}
-      <div className="p-4 border-t border-gray-100">
+      <div className="p-4 border-t border-[#e8e1d8]">
         <div className="flex gap-2">
           <input
             type="text"
@@ -165,12 +165,12 @@ export default function ChatPanel({ documentId, className }: ChatPanelProps) {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyPress}
             placeholder="Ask anything about this document..."
-            className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+            className="flex-1 px-4 py-2.5 border border-[#e8e1d8] bg-[#fffdf9] focus:outline-none focus:ring-1 focus:ring-[#181715] focus:border-[#181715] text-sm"
           />
           <button
             onClick={handleSend}
             disabled={loading || !input.trim()}
-            className="px-4 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="px-4 py-2.5 bg-[#181715] text-[#fffdf9] hover:bg-[#a77a35] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <Send className="w-4 h-4" />
           </button>

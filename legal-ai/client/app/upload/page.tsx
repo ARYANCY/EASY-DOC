@@ -87,7 +87,7 @@ export default function UploadPage() {
       // Redirect to document page after successful upload
       if (result.documentId) {
         setTimeout(() => {
-          router.push(`/history/${result.documentId}`);
+          router.push(`/document/${result.documentId}`);
         }, 1500);
       }
     } catch (err) {
@@ -120,9 +120,9 @@ export default function UploadPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen editorial-shell">
       <Sidebar />
-      <div className="lg:ml-72 min-h-screen flex flex-col">
+      <div className="lg:ml-64 min-h-screen flex flex-col">
         <Header />
         
         <main className="flex-1 p-4 sm:p-6 lg:p-8">
@@ -130,7 +130,7 @@ export default function UploadPage() {
             {/* Back Link */}
             <Link 
               href="/"
-              className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors mb-6"
+              className="inline-flex items-center gap-2 text-[#777169] hover:text-[#181715] transition-colors mb-6"
             >
               <ArrowLeft className="w-4 h-4" />
               <span className="text-sm font-medium">Back to Dashboard</span>
@@ -138,8 +138,9 @@ export default function UploadPage() {
 
             {/* Header */}
             <div className="mb-8">
-              <h1 className="text-3xl font-bold text-slate-900">Upload Document</h1>
-              <p className="text-slate-500 mt-2">Upload a PDF for AI analysis and risk assessment</p>
+              <p className="editorial-label">New Dossier</p>
+              <h1 className="font-editorial text-5xl sm:text-6xl text-[#181715] mt-3">Upload Document</h1>
+              <p className="text-[#777169] mt-3">Upload a PDF for AI analysis and risk assessment</p>
             </div>
             
             {/* Upload Area */}
@@ -149,23 +150,23 @@ export default function UploadPage() {
               onDrop={handleDrop}
               className={`relative border-2 border-dashed rounded-2xl p-12 text-center transition-all duration-300 ${
                 isDragging 
-                  ? 'border-blue-500 bg-blue-50/50 shadow-lg shadow-blue-100' 
-                  : 'border-slate-300 hover:border-slate-400 bg-white hover:shadow-md'
+                  ? 'border-[#181715] bg-[#fffdf9] shadow-lg' 
+                  : 'border-[#e8e1d8] hover:border-[#181715] bg-[#fffdf9] hover:shadow-md'
               }`}
             >
               {isUploading ? (
                 <div className="flex flex-col items-center gap-6">
                   <div className="relative">
-                    <Loader2 className="w-16 h-16 text-blue-600 animate-spin" />
+                    <Loader2 className="w-16 h-16 text-[#181715] animate-spin" />
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-xs font-semibold text-blue-600">{uploadProgress}%</span>
+                      <span className="text-xs font-semibold text-[#181715]">{uploadProgress}%</span>
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <p className="text-slate-900 font-medium">Uploading and analyzing...</p>
-                    <div className="w-48 h-2 bg-slate-100 rounded-full overflow-hidden mx-auto">
+                    <p className="text-[#181715] font-medium">Uploading and analyzing...</p>
+                    <div className="w-48 h-1.5 bg-[#eee7dc] overflow-hidden mx-auto">
                       <div 
-                        className="h-full bg-blue-600 rounded-full transition-all duration-300"
+                        className="h-full bg-[#181715] transition-all duration-300"
                         style={{ width: `${uploadProgress}%` }}
                       />
                     </div>
@@ -173,29 +174,29 @@ export default function UploadPage() {
                 </div>
               ) : uploadResult ? (
                 <div className="flex flex-col items-center gap-4">
-                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-                    <CheckCircle className="w-8 h-8 text-green-600" />
+                  <div className="w-16 h-16 bg-[#181715] flex items-center justify-center">
+                    <CheckCircle className="w-8 h-8 text-[#fffdf9]" />
                   </div>
                   <div>
-                    <p className="text-xl font-semibold text-slate-900">Upload successful!</p>
-                    <p className="text-slate-500 mt-1">
+                    <p className="font-editorial text-3xl text-[#181715]">Upload successful!</p>
+                    <p className="text-[#777169] mt-1">
                       Redirecting to document analysis...
                     </p>
                   </div>
                 </div>
               ) : (
                 <>
-                  <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm">
-                    <UploadIcon className="w-10 h-10 text-blue-600" />
+                  <div className="w-20 h-20 bg-[#181715] flex items-center justify-center mx-auto mb-6 shadow-sm">
+                    <UploadIcon className="w-10 h-10 text-[#fffdf9]" />
                   </div>
-                  <h3 className="text-xl font-semibold text-slate-900 mb-2">
+                  <h3 className="font-editorial text-3xl text-[#181715] mb-2">
                     Drop your PDF here
                   </h3>
-                  <p className="text-slate-500 mb-2">or click to browse files</p>
-                  <p className="text-xs text-slate-400 mb-8">
+                  <p className="text-[#777169] mb-2">or click to browse files</p>
+                  <p className="text-xs text-[#9a938a] mb-8">
                     Supports PDF files up to 50MB
                   </p>
-                  <label className="inline-flex items-center gap-2 px-6 py-3.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl cursor-pointer font-medium">
+                  <label className="editorial-button cursor-pointer">
                     <FileText className="w-5 h-5" />
                     <span>Choose File</span>
                     <input
@@ -219,18 +220,18 @@ export default function UploadPage() {
 
             {/* Supported Features */}
             <div className="mt-12">
-              <h3 className="text-lg font-semibold text-slate-900 mb-4">What happens after upload?</h3>
+              <h3 className="font-editorial text-3xl text-[#181715] mb-4">What happens after upload?</h3>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {features.map((feature, i) => (
                   <div 
                     key={i} 
-                    className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all group"
+                    className="editorial-card p-6 transition-all group"
                   >
                     <div className={`w-12 h-12 ${feature.color} rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
                       <feature.icon className="w-6 h-6" />
                     </div>
-                    <h4 className="font-semibold text-slate-900 mb-1">{feature.title}</h4>
-                    <p className="text-sm text-slate-500">{feature.desc}</p>
+                    <h4 className="font-semibold text-[#181715] mb-1">{feature.title}</h4>
+                    <p className="text-sm text-[#777169]">{feature.desc}</p>
                   </div>
                 ))}
               </div>

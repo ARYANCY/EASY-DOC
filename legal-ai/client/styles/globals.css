@@ -3,17 +3,97 @@
 @tailwind utilities;
 
 :root {
-  --foreground-rgb: 0, 0, 0;
-  --background-rgb: 255, 255, 255;
+  --foreground-rgb: 24, 23, 21;
+  --background-rgb: 247, 244, 239;
+  --editorial-ink: #181715;
+  --editorial-muted: #777169;
+  --editorial-line: #e8e1d8;
+  --editorial-paper: #fffdf9;
+  --editorial-warm: #f7f4ef;
+  --editorial-gold: #a77a35;
 }
 
 body {
   color: rgb(var(--foreground-rgb));
-  background: rgb(var(--background-rgb));
+  background:
+    radial-gradient(circle at top left, rgba(167, 122, 53, 0.08), transparent 28rem),
+    rgb(var(--background-rgb));
+  font-feature-settings: "kern";
+}
+
+::selection {
+  background: #181715;
+  color: #fffdf9;
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+
+  .font-editorial {
+    font-family: Georgia, "Times New Roman", Times, serif;
+  }
+
+  .editorial-shell {
+    background: var(--editorial-warm);
+    color: var(--editorial-ink);
+  }
+
+  .editorial-card {
+    background: rgba(255, 253, 249, 0.92);
+    border: 1px solid var(--editorial-line);
+    box-shadow: 0 18px 50px rgba(24, 23, 21, 0.06);
+  }
+
+  .editorial-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border: 1px solid var(--editorial-ink);
+    background: var(--editorial-ink);
+    color: var(--editorial-paper);
+    padding: 0.75rem 1rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    transition: transform 180ms ease, background-color 180ms ease, color 180ms ease;
+  }
+
+  .editorial-button:hover {
+    transform: translateY(-1px);
+    background: transparent;
+    color: var(--editorial-ink);
+  }
+
+  .editorial-button-light {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border: 1px solid var(--editorial-line);
+    background: rgba(255, 253, 249, 0.78);
+    color: var(--editorial-ink);
+    padding: 0.75rem 1rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    transition: border-color 180ms ease, background-color 180ms ease;
+  }
+
+  .editorial-button-light:hover {
+    border-color: var(--editorial-ink);
+    background: #fffdf9;
+  }
+
+  .editorial-label {
+    color: var(--editorial-muted);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
   }
 }

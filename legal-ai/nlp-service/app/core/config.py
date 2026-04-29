@@ -7,6 +7,9 @@ class Settings(BaseSettings):
     gemini_api_key: str | None = None
     openai_api_key: str | None = None
     groq_api_key: str | None = None
+    gemini_model: str = "gemini-2.0-flash"
+    groq_model: str = "llama-3.1-8b-instant"
+    openai_model: str = "gpt-4o-mini"
     
     # Database
     mongodb_uri: str = "mongodb://localhost:27017"

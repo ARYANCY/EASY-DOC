@@ -19,8 +19,7 @@ const chatMessageSchema = new mongoose.Schema({
 const chatHistorySchema = new mongoose.Schema({
   documentId: {
     type: String,
-    required: true,
-    index: true
+    required: true
   },
   messages: [chatMessageSchema],
   createdAt: {

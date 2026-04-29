@@ -67,9 +67,9 @@ const getIconFromType = (type?: string): 'confidentiality' | 'obligations' | 'te
 export default function ClausesPanel({ clauses, className }: ClausesPanelProps) {
   if (!clauses || clauses.length === 0) {
     return (
-      <div className={cn('bg-white rounded-xl border border-gray-200 p-6', className)}>
-        <div className="text-center py-8 text-gray-500">
-          <FileText className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+      <div className={cn('editorial-card p-6', className)}>
+        <div className="text-center py-8 text-[#777169]">
+          <FileText className="w-8 h-8 mx-auto mb-2 text-[#777169]" />
           <p className="text-sm">No clauses extracted yet</p>
         </div>
       </div>
@@ -77,10 +77,10 @@ export default function ClausesPanel({ clauses, className }: ClausesPanelProps) 
   }
 
   return (
-    <div className={cn('bg-white rounded-xl border border-gray-200 p-6', className)}>
+    <div className={cn('editorial-card p-6', className)}>
       <div className="flex items-center justify-between mb-4">
-        <h2 className="font-semibold text-gray-900">Key Clauses Extracted</h2>
-        <button className="flex items-center gap-1 text-sm text-purple-600 hover:text-purple-700 font-medium">
+        <h2 className="font-editorial text-2xl text-[#181715]">Key Clauses Extracted</h2>
+        <button className="flex items-center gap-1 text-xs font-bold uppercase tracking-[0.14em] text-[#181715] hover:text-[#a77a35]">
           View All Clauses
           <ChevronRight className="w-4 h-4" />
         </button>
@@ -96,7 +96,7 @@ export default function ClausesPanel({ clauses, className }: ClausesPanelProps) 
             <div
               key={clause.id || index}
               className={cn(
-                'p-4 rounded-lg border',
+                'p-4 border transition-all hover:-translate-y-0.5',
                 colors.bg,
                 colors.border
               )}
@@ -114,8 +114,8 @@ export default function ClausesPanel({ clauses, className }: ClausesPanelProps) 
                   </span>
                 )}
               </div>
-              <h3 className="font-semibold text-gray-900 text-sm mb-1">{clause.title}</h3>
-              <p className="text-xs text-gray-600 leading-relaxed">{clause.description}</p>
+              <h3 className="font-semibold text-[#181715] text-sm mb-1">{clause.title}</h3>
+              <p className="text-xs text-[#5f5952] leading-relaxed">{clause.description}</p>
             </div>
           );
         })}
