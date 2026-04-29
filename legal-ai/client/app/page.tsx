@@ -3,23 +3,30 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Sidebar from "../components/Sidebar";
-import Header from "../components/Header";
+import ThemeToggle from "../components/ThemeToggle";
 import { 
   FileText, 
-  Clock, 
+  Clock,
   Shield, 
   TrendingUp, 
   Loader2, 
   AlertCircle, 
   Plus,
-  Search,
   ArrowRight,
   Activity,
-  MoreHorizontal
+  MoreHorizontal,
+  Scale,
+  ChevronDown,
+  LogOut,
+  User,
+  Settings,
+  Bell,
+  Moon
 } from "lucide-react";
 import { getDashboardStats, getRecentDocuments, DashboardStats, RecentDocument } from "../features/dashboard/dashboardService";
-import { getCurrentUser } from "../features/auth/authService";
+import { getCurrentUser, logout } from "../features/auth/authService";
 import Link from "next/link";
+import { cn } from "../lib/utils/cn";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -28,6 +35,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   useEffect(() => {
     const currentUser = getCurrentUser();
@@ -61,6 +69,11 @@ export default function DashboardPage() {
     fetchData();
   }, [router]);
 
+  const handleLogout = () => {
+    logout();
+    router.push("/login");
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
       day: "numeric",
@@ -70,63 +83,98 @@ export default function DashboardPage() {
   };
 
   const getRiskColor = (risk: number) => {
-    if (risk > 70) return "bg-red-500";
-    if (risk > 40) return "bg-yellow-500";
-    return "bg-green-500";
+    if (risk > 70) return "bg-[#f48771]";
+    if (risk > 40) return "bg-[#cca700]";
+    return "bg-[#89d185]";
   };
 
   const getRiskBgColor = (risk: number) => {
-    if (risk > 70) return "bg-red-50 border-red-100";
-    if (risk > 40) return "bg-yellow-50 border-yellow-100";
-    return "bg-green-50 border-green-100";
+    if (risk > 70) return "bg-[#f48771]/10 border-[#f48771]/20";
+    if (risk > 40) return "bg-[#cca700]/10 border-[#cca700]/20";
+    return "bg-[#89d185]/10 border-[#89d185]/20";
+  };
+
+  const getRiskTextColor = (risk: number) => {
+    if (risk > 70) return "text-[#f48771]";
+    if (risk > 40) return "text-[#cca700]";
+    return "text-[#89d185]";
   };
 
   if (!user) return null;
 
   return (
-    <div className="min-h-screen editorial-shell">
+    <div className="h-screen bg-[var(--vscode-bg)] text-[var(--vscode-text)] overflow-hidden flex">
+      {/* Activity Bar - Left Sidebar */}
       <Sidebar />
-      <div className="lg:ml-64 min-h-screen flex flex-col">
-        <Header />
-        <main className="flex-1 p-4 sm:p-6 lg:p-8">
+      
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-w-0 ml-12">
+        {/* Top Header Bar */}
+        <header className="h-9 bg-[var(--vscode-activity)] border-b border-[var(--vscode-border)] flex items-center justify-between px-3 shrink-0">
+          <div className="flex items-center gap-2 text-xs">
+            <Scale className="w-4 h-4 text-[var(--vscode-accent)]" />
+            <span className="text-[var(--vscode-text-muted)]">LegalAI</span>
+            <span className="text-[var(--vscode-text-muted)]">/</span>
+            <span className="text-[var(--vscode-text)]">Dashboard</span>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <button className="p-1.5 text-[var(--vscode-text-muted)] hover:text-[var(--vscode-text)] hover:bg-[var(--vscode-hover)]">
+              <Bell className="w-4 h-4" />
+            </button>
+            <ThemeToggle size="sm" />
+            
+            {/* Profile Dropdown */}
+            <div className="relative">
+              <button 
+                onClick={() => setIsProfileOpen(!isProfileOpen)}
+                className="flex items-center gap-2 pl-2 border-l border-[var(--vscode-border)] hover:bg-[var(--vscode-hover)] py-1"
+              >
+                <div className="w-5 h-5 bg-[var(--vscode-accent)] flex items-center justify-center text-white text-xs font-semibold">
+                  {user?.name?.charAt(0).toUpperCase() || "U"}
+                </div>
+                <ChevronDown className={cn("w-3 h-3 text-[var(--vscode-text-muted)] transition-transform", isProfileOpen && "rotate-180")} />
+              </button>
+              
+              {isProfileOpen && (
+                <div className="absolute right-0 top-full mt-1 w-48 bg-[var(--vscode-sidebar)] border border-[var(--vscode-border)] shadow-lg py-1 z-50">
+                  <div className="px-3 py-2 border-b border-[var(--vscode-border)]">
+                    <p className="text-sm text-[var(--vscode-text)]">{user?.name || "User"}</p>
+                    <p className="text-xs text-[var(--vscode-text-muted)]">{user?.email || ""}</p>
+                  </div>
+                  <Link href="/settings" className="flex items-center gap-2 px-3 py-2 text-sm text-[var(--vscode-text)] hover:bg-[var(--vscode-hover)]">
+                    <Settings className="w-4 h-4" />
+                    Settings
+                  </Link>
+                  <button 
+                    onClick={handleLogout}
+                    className="flex items-center gap-2 px-3 py-2 text-sm text-[var(--vscode-text)] hover:bg-[var(--vscode-hover)] w-full"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Sign out
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </header>
+
+        {/* Main Scrollable Content */}
+        <main className="flex-1 overflow-auto p-6">
           <div className="max-w-7xl mx-auto">
             {/* Header Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_0.6fr] gap-6 mb-8">
-              <div>
-                <p className="editorial-label">Legal Workroom</p>
-                <h1 className="font-editorial text-5xl sm:text-6xl lg:text-7xl leading-[0.92] text-[#181715] mt-3">
-                  Review with editorial precision.
-                </h1>
-                <p className="text-[#777169] mt-5 max-w-2xl">
-                  Welcome back, {user?.name || 'User'}. Your contracts, risk notes, and AI analysis are arranged like a premium dossier.
-                </p>
-              </div>
-              <div className="editorial-card p-5 flex flex-col justify-between min-h-48">
-                <div>
-                  <p className="editorial-label">Current Edit</p>
-                  <p className="font-editorial text-3xl mt-2">Spring review</p>
-                </div>
-                <div className="flex flex-col sm:flex-row lg:flex-col gap-3">
-                <Link
-                  href="/upload"
-                  className="editorial-button"
-                >
-                  <Plus className="w-4 h-4" />
-                  Upload Document
-                </Link>
-                <Link
-                  href="/search"
-                  className="editorial-button-light"
-                >
-                  <Search className="w-4 h-4" />
-                  Search
-                </Link>
-                </div>
-              </div>
+            <div className="mb-8">
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--vscode-text-muted)] mb-2">Overview</p>
+              <h1 className="text-3xl sm:text-4xl font-light text-[var(--vscode-text)]">
+                Welcome back, <span className="text-[var(--vscode-accent)]">{user?.name || 'User'}</span>
+              </h1>
+              <p className="text-[var(--vscode-text-muted)] mt-2 text-sm">
+                Your legal documents and AI analysis dashboard
+              </p>
             </div>
 
             {error && (
-              <div className="bg-red-50 border border-red-100 text-red-700 px-4 py-3 rounded-xl mb-6 flex items-center gap-3">
+              <div className="bg-[#f48771]/10 border border-[#f48771]/20 text-[#f48771] px-4 py-3 mb-6 flex items-center gap-3">
                 <AlertCircle className="w-5 h-5 flex-shrink-0" />
                 <p className="text-sm">{error}</p>
               </div>
@@ -135,8 +183,8 @@ export default function DashboardPage() {
             {loading ? (
               <div className="flex items-center justify-center h-64">
                 <div className="flex flex-col items-center gap-3">
-                  <Loader2 className="w-10 h-10 animate-spin text-blue-600" />
-                  <p className="text-slate-500 text-sm">Loading dashboard...</p>
+                  <Loader2 className="w-10 h-10 animate-spin text-[var(--vscode-accent)]" />
+                  <p className="text-[var(--vscode-text-muted)] text-sm">Loading dashboard...</p>
                 </div>
               </div>
             ) : (
@@ -144,147 +192,140 @@ export default function DashboardPage() {
                 {/* Stats Cards Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                   {/* Total Documents */}
-                  <div className="editorial-card p-6 transition-all group">
+                  <div className="bg-[var(--vscode-sidebar)] border border-[var(--vscode-border)] p-5 hover:border-[var(--vscode-accent)] transition-colors group">
                     <div className="flex items-start justify-between">
                       <div>
-                        <p className="editorial-label mb-3">Documents</p>
-                        <p className="font-editorial text-5xl text-[#181715]">{stats?.totalDocuments || 0}</p>
-                        <p className="text-xs text-[#777169] mt-2">All time uploads</p>
+                        <p className="text-xs font-bold uppercase tracking-wider text-[var(--vscode-text-muted)] mb-2">Documents</p>
+                        <p className="text-4xl font-light text-[var(--vscode-text)]">{stats?.totalDocuments || 0}</p>
+                        <p className="text-xs text-[var(--vscode-text-muted)] mt-1">All time uploads</p>
                       </div>
-                      <div className="w-12 h-12 bg-[#181715] flex items-center justify-center transition-colors">
-                        <FileText className="w-6 h-6 text-[#fffdf9]" />
+                      <div className="w-10 h-10 bg-[var(--vscode-accent)] flex items-center justify-center">
+                        <FileText className="w-5 h-5 text-white" />
                       </div>
                     </div>
                   </div>
 
                   {/* Analyzed This Month */}
-                  <div className="editorial-card p-6 transition-all group">
+                  <div className="bg-[var(--vscode-sidebar)] border border-[var(--vscode-border)] p-5 hover:border-[var(--vscode-accent)] transition-colors group">
                     <div className="flex items-start justify-between">
                       <div>
-                        <p className="editorial-label mb-3">This Month</p>
-                        <p className="font-editorial text-5xl text-[#181715]">{stats?.analyzedThisMonth || 0}</p>
-                        <p className="text-xs text-[#777169] mt-2 flex items-center gap-1">
+                        <p className="text-xs font-bold uppercase tracking-wider text-[var(--vscode-text-muted)] mb-2">This Month</p>
+                        <p className="text-4xl font-light text-[var(--vscode-text)]">{stats?.analyzedThisMonth || 0}</p>
+                        <p className="text-xs text-[var(--vscode-text-muted)] mt-1 flex items-center gap-1">
                           <Activity className="w-3 h-3" />
                           Active processing
                         </p>
                       </div>
-                      <div className="w-12 h-12 bg-[#f0ebe3] flex items-center justify-center transition-colors">
-                        <TrendingUp className="w-6 h-6 text-[#181715]" />
+                      <div className="w-10 h-10 bg-[var(--vscode-hover)] flex items-center justify-center">
+                        <TrendingUp className="w-5 h-5 text-[var(--vscode-text)]" />
                       </div>
                     </div>
                   </div>
 
                   {/* Average Risk Score */}
-                  <div className="editorial-card p-6 transition-all group">
+                  <div className="bg-[var(--vscode-sidebar)] border border-[var(--vscode-border)] p-5 hover:border-[var(--vscode-accent)] transition-colors group">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <p className="editorial-label mb-3">Avg Risk</p>
+                        <p className="text-xs font-bold uppercase tracking-wider text-[var(--vscode-text-muted)] mb-2">Avg Risk</p>
                         <div className="flex items-baseline gap-2">
-                          <p className="font-editorial text-5xl text-[#181715]">{stats?.averageRiskScore || 0}</p>
-                          <span className="text-sm text-[#777169]">/100</span>
+                          <p className="text-4xl font-light text-[var(--vscode-text)]">{stats?.averageRiskScore || 0}</p>
+                          <span className="text-sm text-[var(--vscode-text-muted)]">/100</span>
                         </div>
-                        <div className="mt-3 h-1.5 bg-[#eee7dc] overflow-hidden">
+                        <div className="mt-3 h-1 bg-[var(--vscode-input)] overflow-hidden">
                           <div 
-                            className={`h-full rounded-full transition-all duration-500 ${getRiskColor(stats?.averageRiskScore || 0)}`}
+                            className={`h-full transition-all duration-500 ${getRiskColor(stats?.averageRiskScore || 0)}`}
                             style={{ width: `${stats?.averageRiskScore || 0}%` }}
                           />
                         </div>
                       </div>
-                      <div className="w-12 h-12 bg-[#f0ebe3] flex items-center justify-center transition-colors ml-3">
-                        <Shield className="w-6 h-6 text-[#a77a35]" />
+                      <div className="w-10 h-10 bg-[var(--vscode-hover)] flex items-center justify-center ml-3">
+                        <Shield className="w-5 h-5 text-[var(--vscode-accent)]" />
                       </div>
                     </div>
                   </div>
 
                   {/* Pending Review */}
-                  <div className="editorial-card p-6 transition-all group">
+                  <div className="bg-[var(--vscode-sidebar)] border border-[var(--vscode-border)] p-5 hover:border-[var(--vscode-accent)] transition-colors group">
                     <div className="flex items-start justify-between">
                       <div>
-                        <p className="editorial-label mb-3">Pending</p>
-                        <p className="font-editorial text-5xl text-[#181715]">{stats?.pendingReview || 0}</p>
-                        <p className="text-xs text-[#777169] mt-2">Requires attention</p>
+                        <p className="text-xs font-bold uppercase tracking-wider text-[var(--vscode-text-muted)] mb-2">Pending</p>
+                        <p className="text-4xl font-light text-[var(--vscode-text)]">{stats?.pendingReview || 0}</p>
+                        <p className="text-xs text-[var(--vscode-text-muted)] mt-1">Requires attention</p>
                       </div>
-                      <div className="w-12 h-12 bg-[#181715] flex items-center justify-center transition-colors">
-                        <Clock className="w-6 h-6 text-[#fffdf9]" />
+                      <div className="w-10 h-10 bg-[var(--vscode-accent)] flex items-center justify-center">
+                        <Clock className="w-5 h-5 text-white" />
                       </div>
                     </div>
                   </div>
                 </div>
 
                 {/* Recent Documents Section */}
-                <div className="editorial-card overflow-hidden">
-                  <div className="px-6 py-5 border-b border-[#e8e1d8] flex items-center justify-between">
-                    <div>
-                      <p className="editorial-label">Recent Documents</p>
-                      <h2 className="font-editorial text-3xl text-[#181715] mt-1">Latest dossiers</h2>
+                <div className="bg-[var(--vscode-sidebar)] border border-[var(--vscode-border)] overflow-hidden">
+                  <div className="px-4 py-3 border-b border-[var(--vscode-border)] flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-[var(--vscode-accent)]" />
+                      <span className="text-sm font-semibold text-[var(--vscode-text)]">Recent Documents</span>
                     </div>
                     <Link 
                       href="/documents"
-                      className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-[0.14em] text-[#181715] hover:text-[#a77a35] transition-colors"
+                      className="inline-flex items-center gap-1 text-xs text-[var(--vscode-accent)] hover:text-[var(--vscode-accent-hover)] transition-colors"
                     >
                       View all
-                      <ArrowRight className="w-4 h-4" />
+                      <ArrowRight className="w-3 h-3" />
                     </Link>
                   </div>
 
                   {documents.length === 0 ? (
                     <div className="px-6 py-12 text-center">
-                      <div className="w-16 h-16 bg-[#f0ebe3] flex items-center justify-center mx-auto mb-4">
-                        <FileText className="w-8 h-8 text-[#777169]" />
+                      <div className="w-16 h-16 bg-[var(--vscode-hover)] flex items-center justify-center mx-auto mb-4">
+                        <FileText className="w-8 h-8 text-[var(--vscode-text-muted)]" />
                       </div>
-                      <h3 className="font-editorial text-2xl text-[#181715] mb-1">No documents yet</h3>
-                      <p className="text-[#777169] text-sm mb-4">Upload your first document to get started</p>
+                      <h3 className="text-xl text-[var(--vscode-text)] mb-1">No documents yet</h3>
+                      <p className="text-[var(--vscode-text-muted)] text-sm mb-4">Upload your first document to get started</p>
                       <Link
                         href="/upload"
-                        className="editorial-button"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--vscode-accent)] text-white text-sm hover:bg-[var(--vscode-accent-hover)] transition-colors"
                       >
                         <Plus className="w-4 h-4" />
                         Upload Document
                       </Link>
                     </div>
                   ) : (
-                    <div className="divide-y divide-[#e8e1d8]">
+                    <div className="divide-y divide-[var(--vscode-border)]">
                       {documents.map((doc) => (
                         <Link
                           key={doc.id}
                           href={`/document/${doc.id}`}
-                          className="flex items-center gap-4 px-6 py-4 hover:bg-[#f7f4ef] transition-colors group"
+                          className="flex items-center gap-4 px-4 py-3 hover:bg-[var(--vscode-hover)] transition-colors group"
                         >
-                          <div className={`w-12 h-12 flex items-center justify-center flex-shrink-0 ${getRiskBgColor(doc.risk || 0)}`}>
-                            <FileText className="w-5 h-5 text-[#181715]" />
+                          <div className={cn("w-10 h-10 flex items-center justify-center flex-shrink-0 border", getRiskBgColor(doc.risk || 0))}>
+                            <FileText className="w-4 h-4 text-[var(--vscode-text)]" />
                           </div>
                           
                           <div className="flex-1 min-w-0">
-                            <h3 className="text-sm font-semibold text-[#181715] truncate group-hover:text-[#a77a35] transition-colors">
+                            <h3 className="text-sm font-medium text-[var(--vscode-text)] truncate group-hover:text-[var(--vscode-accent)] transition-colors">
                               {doc.name}
                             </h3>
-                            <p className="text-xs text-[#777169] mt-0.5">{formatDate(doc.date)}</p>
+                            <p className="text-xs text-[var(--vscode-text-muted)] mt-0.5">{formatDate(doc.date)}</p>
                           </div>
 
                           <div className="flex items-center gap-3">
                             {doc.risk !== null && (
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs text-[#777169]">Risk:</span>
-                                <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
-                                  doc.risk > 70 ? "bg-red-100 text-red-700" :
-                                  doc.risk > 40 ? "bg-amber-100 text-amber-700" :
-                                  "bg-green-100 text-green-700"
-                                }`}>
-                                  {doc.risk}
-                                </span>
-                              </div>
+                              <span className={cn("text-xs font-medium px-2 py-0.5", getRiskTextColor(doc.risk))}>
+                                {doc.risk}
+                              </span>
                             )}
                             
-                            <span className={`text-xs font-medium px-3 py-1.5 rounded-full border ${
-                              doc.status === "Analyzed" ? "bg-emerald-50 text-emerald-700 border-emerald-100" :
-                              doc.status === "Pending" ? "bg-amber-50 text-amber-700 border-amber-100" :
-                              "bg-slate-50 text-slate-700 border-slate-200"
-                            }`}>
+                            <span className={cn("text-xs px-2 py-0.5 border", 
+                              doc.status === "Analyzed" ? "text-[#89d185] border-[#89d185]/30" :
+                              doc.status === "Pending" ? "text-[#cca700] border-[#cca700]/30" :
+                              "text-[var(--vscode-text-muted)] border-[var(--vscode-border)]"
+                            )}>
                               {doc.status}
                             </span>
 
-                            <button className="w-8 h-8 hover:bg-[#eee7dc] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">
-                              <MoreHorizontal className="w-4 h-4 text-[#777169]" />
+                            <button className="w-6 h-6 hover:bg-[var(--vscode-input)] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">
+                              <MoreHorizontal className="w-3 h-3 text-[var(--vscode-text-muted)]" />
                             </button>
                           </div>
                         </Link>
@@ -293,45 +334,14 @@ export default function DashboardPage() {
                   )}
                 </div>
 
-                {/* Quick Actions */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
+                {/* Quick Action */}
+                <div className="mt-8">
                   <Link 
                     href="/upload"
-                    className="flex items-center gap-4 p-5 bg-[#181715] text-[#fffdf9] transition-all shadow-lg hover:-translate-y-1"
+                    className="inline-flex items-center gap-3 px-6 py-3 bg-[var(--vscode-accent)] text-white hover:bg-[var(--vscode-accent-hover)] transition-all"
                   >
-                    <div className="w-12 h-12 bg-[#fffdf9]/10 flex items-center justify-center backdrop-blur-sm">
-                      <Plus className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold">Upload Document</h3>
-                      <p className="text-sm text-[#fffdf9]/60 mt-0.5">Add new legal documents</p>
-                    </div>
-                  </Link>
-
-                  <Link 
-                    href="/search"
-                    className="flex items-center gap-4 p-5 bg-[#fffdf9] border border-[#e8e1d8] text-[#181715] transition-all shadow-lg hover:-translate-y-1"
-                  >
-                    <div className="w-12 h-12 bg-[#f0ebe3] flex items-center justify-center backdrop-blur-sm">
-                      <Search className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold">Search Documents</h3>
-                      <p className="text-sm text-[#777169] mt-0.5">Find specific clauses</p>
-                    </div>
-                  </Link>
-
-                  <Link 
-                    href="/history"
-                    className="flex items-center gap-4 p-5 bg-[#f0ebe3] border border-[#e8e1d8] text-[#181715] transition-all shadow-lg hover:-translate-y-1"
-                  >
-                    <div className="w-12 h-12 bg-[#fffdf9] flex items-center justify-center backdrop-blur-sm">
-                      <Clock className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold">View History</h3>
-                      <p className="text-sm text-[#777169] mt-0.5">Past analyses & chats</p>
-                    </div>
+                    <Plus className="w-5 h-5" />
+                    <span className="font-medium">Upload New Document</span>
                   </Link>
                 </div>
               </>

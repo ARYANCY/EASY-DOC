@@ -3,13 +3,17 @@ from functools import lru_cache
 
 
 class Settings(BaseSettings):
-    # LLM Providers
-    gemini_api_key: str | None = None
-    openai_api_key: str | None = None
-    groq_api_key: str | None = None
-    gemini_model: str = "gemini-2.0-flash"
+    # LLM Providers - Multiple keys separated by comma for round-robin
+    # Example: GROQ_API_KEY="key1,key2,key3"
+    groq_api_key: str | None = None  # Groq first approach
+    gemini_api_key: str | None = None  # Gemini fallback with round-robin
+    
     groq_model: str = "llama-3.1-8b-instant"
-    openai_model: str = "gpt-4o-mini"
+    gemini_model: str = "gemini-2.0-flash"
+    
+    # Round robin tracking (persisted in memory)
+    _groq_key_index: int = 0
+    _gemini_key_index: int = 0
     
     # Database
     mongodb_uri: str = "mongodb://localhost:27017"

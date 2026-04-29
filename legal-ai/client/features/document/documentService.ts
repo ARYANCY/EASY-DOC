@@ -9,6 +9,7 @@ export interface Document {
   success: boolean;
   documentId: string;
   filename: string;
+  filePath?: string;
   text: string;
   chunks: string[];
   status: string;
@@ -25,6 +26,12 @@ export interface Document {
 export const getDocument = async (documentId: string): Promise<Document> => {
   const data = await api.get(`/documents/${documentId}`);
   return (data as unknown) as Document;
+};
+
+export const getDocumentPDFUrl = (documentId: string): string => {
+  // Return the API endpoint URL for the PDF file
+  const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+  return `${baseURL}/documents/${documentId}/file`;
 };
 
 export const simplifyDocument = async (text: string): Promise<SimplifyResponse> => {

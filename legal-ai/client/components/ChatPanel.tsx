@@ -69,20 +69,20 @@ export default function ChatPanel({ documentId, className }: ChatPanelProps) {
   };
 
   return (
-    <div className={cn('editorial-card flex flex-col h-full', className)}>
+    <div className={cn('flex flex-col h-full bg-[var(--vscode-sidebar)] border border-[var(--vscode-border)]', className)}>
       {/* Header */}
-      <div className="px-5 py-4 border-b border-[#e8e1d8] flex items-center justify-between">
+      <div className="px-4 py-3 border-b border-[var(--vscode-border)] flex items-center justify-between bg-[var(--vscode-activity)]">
         <div className="flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-[#a77a35]" />
-          <h2 className="font-editorial text-2xl text-[#181715]">AI Legal Assistant</h2>
+          <Sparkles className="w-4 h-4 text-[var(--vscode-accent)]" />
+          <h2 className="text-sm font-semibold text-[var(--vscode-text)]">AI Legal Assistant</h2>
         </div>
-        <button className="text-[#777169] hover:text-[#181715]">
-          <X className="w-5 h-5" />
+        <button className="text-[var(--vscode-text-muted)] hover:text-white">
+          <X className="w-4 h-4" />
         </button>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-5 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((message, index) => (
           <div
             key={index}
@@ -93,10 +93,10 @@ export default function ChatPanel({ documentId, className }: ChatPanelProps) {
           >
             <div
               className={cn(
-                'w-8 h-8 rounded-full flex items-center justify-center shrink-0',
+                'w-8 h-8 flex items-center justify-center shrink-0',
                 message.role === 'user'
-                  ? 'bg-[#181715] text-[#fffdf9]'
-                  : 'bg-[#f0ebe3] text-[#181715]'
+                  ? 'bg-[var(--vscode-accent)] text-white'
+                  : 'bg-[var(--vscode-hover)] text-[var(--vscode-text)]'
               )}
             >
               {message.role === 'user' ? (
@@ -107,10 +107,10 @@ export default function ChatPanel({ documentId, className }: ChatPanelProps) {
             </div>
             <div
               className={cn(
-                'max-w-[80%] p-3 rounded-lg text-sm leading-relaxed',
+                'max-w-[85%] p-3 text-sm leading-relaxed',
                 message.role === 'user'
-                  ? 'bg-[#181715] text-[#fffdf9]'
-                  : 'bg-[#f7f4ef] text-[#3f3a35]'
+                  ? 'bg-[var(--vscode-accent)] text-white'
+                  : 'bg-[var(--vscode-hover)] text-[var(--vscode-text)]'
               )}
             >
               {message.content}
@@ -119,14 +119,14 @@ export default function ChatPanel({ documentId, className }: ChatPanelProps) {
         ))}
         {loading && (
           <div className="flex gap-3">
-            <div className="w-8 h-8 bg-[#f0ebe3] text-[#181715] flex items-center justify-center">
-              <Bot className="w-4 h-4" />
+            <div className="w-8 h-8 bg-[var(--vscode-hover)] flex items-center justify-center">
+              <Bot className="w-4 h-4 text-[var(--vscode-text)]" />
             </div>
-            <div className="bg-[#f7f4ef] p-3">
+            <div className="bg-[var(--vscode-hover)] p-3">
               <div className="flex gap-1">
-                <span className="w-2 h-2 bg-[#181715] rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                <span className="w-2 h-2 bg-[#181715] rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                <span className="w-2 h-2 bg-[#181715] rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                <span className="w-2 h-2 bg-[var(--vscode-text-muted)] animate-bounce" style={{ animationDelay: '0ms' }} />
+                <span className="w-2 h-2 bg-[var(--vscode-text-muted)] animate-bounce" style={{ animationDelay: '150ms' }} />
+                <span className="w-2 h-2 bg-[var(--vscode-text-muted)] animate-bounce" style={{ animationDelay: '300ms' }} />
               </div>
             </div>
           </div>
@@ -136,7 +136,7 @@ export default function ChatPanel({ documentId, className }: ChatPanelProps) {
 
       {/* Suggested Questions */}
       {messages.length <= 1 && (
-        <div className="px-5 py-3 border-t border-[#e8e1d8] bg-[#f7f4ef]/60">
+        <div className="px-4 py-3 border-t border-[var(--vscode-border)] bg-[var(--vscode-activity)]">
           <div className="flex flex-wrap gap-2">
             {[
               'What happens if the other party breaches the agreement?',
@@ -147,7 +147,7 @@ export default function ChatPanel({ documentId, className }: ChatPanelProps) {
                 onClick={() => {
                   setInput(question);
                 }}
-                className="px-3 py-1.5 text-xs bg-[#fffdf9] border border-[#e8e1d8] text-[#181715] hover:border-[#181715] transition-colors"
+                className="px-3 py-1.5 text-xs bg-[var(--vscode-hover)] border border-[var(--vscode-border)] text-[var(--vscode-text)] hover:border-[var(--vscode-text-muted)] transition-colors"
               >
                 {question}
               </button>
@@ -157,7 +157,7 @@ export default function ChatPanel({ documentId, className }: ChatPanelProps) {
       )}
 
       {/* Input */}
-      <div className="p-4 border-t border-[#e8e1d8]">
+      <div className="p-3 border-t border-[var(--vscode-border)] bg-[var(--vscode-activity)]">
         <div className="flex gap-2">
           <input
             type="text"
@@ -165,12 +165,12 @@ export default function ChatPanel({ documentId, className }: ChatPanelProps) {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyPress}
             placeholder="Ask anything about this document..."
-            className="flex-1 px-4 py-2.5 border border-[#e8e1d8] bg-[#fffdf9] focus:outline-none focus:ring-1 focus:ring-[#181715] focus:border-[#181715] text-sm"
+            className="flex-1 px-3 py-2 bg-[var(--vscode-input)] border border-[var(--vscode-border)] text-[var(--vscode-text)] text-sm focus:outline-none focus:border-[var(--vscode-accent)]"
           />
           <button
             onClick={handleSend}
             disabled={loading || !input.trim()}
-            className="px-4 py-2.5 bg-[#181715] text-[#fffdf9] hover:bg-[#a77a35] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="px-3 py-2 bg-[var(--vscode-accent)] text-white hover:bg-[var(--vscode-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <Send className="w-4 h-4" />
           </button>

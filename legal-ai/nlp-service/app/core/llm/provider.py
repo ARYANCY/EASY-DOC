@@ -7,59 +7,63 @@ logger = logging.getLogger(__name__)
 # Lazy initialization flags
 _gemini_configured = False
 _gemini_available = False
-_openai_available = False
 _groq_available = False
 
 
-def _has_real_key(value: str | None) -> bool:
-    if not value:
-        return False
-    lowered = value.strip().lower()
-    return not (
-        lowered.startswith("your_")
-        or lowered.endswith("_optional")
-        or lowered in {"optional", "none", "null", "changeme"}
-    )
+def _parse_api_keys(key_string: str | None) -> list[str]:
+    """Parse comma-separated API keys."""
+    if not key_string:
+        return []
+    keys = [k.strip() for k in key_string.split(",") if k.strip()]
+    # Filter out placeholder keys
+    real_keys = []
+    for key in keys:
+        lowered = key.lower()
+        if not (
+            lowered.startswith("your_")
+            or lowered.endswith("_optional")
+            or lowered in {"optional", "none", "null", "changeme", ""}
+        ):
+            real_keys.append(key)
+    return real_keys
 
-# Try to configure Gemini
+
+def _get_next_key(keys: list[str], key_index_name: str) -> str | None:
+    """Get next key using round-robin."""
+    if not keys:
+        return None
+    
+    # Get current index from settings
+    current_index = getattr(settings, key_index_name, 0)
+    
+    # Select key
+    selected_key = keys[current_index % len(keys)]
+    
+    # Update index for next call
+    setattr(settings, key_index_name, (current_index + 1) % len(keys))
+    
+    return selected_key
+
+
 def _configure_gemini():
     global _gemini_configured, _gemini_available
     if _gemini_configured:
         return _gemini_available
     
     _gemini_configured = True
-    if not _has_real_key(settings.gemini_api_key):
+    gemini_keys = _parse_api_keys(settings.gemini_api_key)
+    
+    if not gemini_keys:
         logger.warning("Gemini API key not configured")
         return False
     
     try:
         from google import genai  # noqa: F401
-        logger.info("Gemini configured successfully with google-genai")
+        logger.info(f"Gemini configured successfully with {len(gemini_keys)} key(s)")
         _gemini_available = True
         return True
     except Exception as e:
-        logger.warning(f"Gemini unavailable. Install google-genai or rely on fallback providers: {e}")
-        return False
-
-# Try to configure OpenAI
-def _configure_openai():
-    global _openai_available
-    if _openai_available:
-        return True
-    
-    if not _has_real_key(settings.openai_api_key):
-        logger.warning("OpenAI API key not configured")
-        return False
-    
-    try:
-        import openai
-        # New SDK style
-        openai.api_key = settings.openai_api_key
-        _openai_available = True
-        logger.info("OpenAI configured successfully")
-        return True
-    except Exception as e:
-        logger.error(f"Failed to configure OpenAI: {e}")
+        logger.warning(f"Gemini unavailable. Install google-genai: {e}")
         return False
 
 
@@ -68,26 +72,61 @@ def _configure_groq():
     if _groq_available:
         return True
 
-    if not _has_real_key(settings.groq_api_key):
+    groq_keys = _parse_api_keys(settings.groq_api_key)
+    
+    if not groq_keys:
         logger.warning("Groq API key not configured")
         return False
 
     try:
         import groq  # noqa: F401
+        logger.info(f"Groq configured successfully with {len(groq_keys)} key(s)")
         _groq_available = True
-        logger.info("Groq configured successfully")
         return True
     except Exception as e:
         logger.error(f"Failed to configure Groq: {e}")
         return False
 
 
-async def _call_gemini(prompt: str, temperature: float):
+async def _call_groq(prompt: str, temperature: float) -> str:
+    """Call Groq API with round-robin key selection."""
+    from groq import Groq
+    
+    groq_keys = _parse_api_keys(settings.groq_api_key)
+    if not groq_keys:
+        raise ValueError("No Groq API keys available")
+    
+    api_key = _get_next_key(groq_keys, "_groq_key_index")
+    
+    client = Groq(api_key=api_key)
+    response = await asyncio.get_event_loop().run_in_executor(
+        None,
+        lambda: client.chat.completions.create(
+            model=settings.groq_model,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=temperature,
+            max_tokens=2048,
+        )
+    )
+    content = response.choices[0].message.content
+    if not content:
+        raise ValueError("Groq returned an empty response")
+    return content
+
+
+async def _call_gemini(prompt: str, temperature: float) -> str:
+    """Call Gemini API with round-robin key selection."""
     from google import genai
     from google.genai import types
-
-    client = genai.Client(api_key=settings.gemini_api_key)
-    return await asyncio.get_event_loop().run_in_executor(
+    
+    gemini_keys = _parse_api_keys(settings.gemini_api_key)
+    if not gemini_keys:
+        raise ValueError("No Gemini API keys available")
+    
+    api_key = _get_next_key(gemini_keys, "_gemini_key_index")
+    
+    client = genai.Client(api_key=api_key)
+    response = await asyncio.get_event_loop().run_in_executor(
         None,
         lambda: client.models.generate_content(
             model=settings.gemini_model,
@@ -98,75 +137,68 @@ async def _call_gemini(prompt: str, temperature: float):
             ),
         ),
     )
+    
+    # Extract text from response
+    text = getattr(response, "text", None)
+    if text:
+        return text
+    
+    candidates = getattr(response, "candidates", None) or []
+    if candidates:
+        parts = getattr(candidates[0].content, "parts", []) or []
+        joined = "".join(getattr(part, "text", "") for part in parts).strip()
+        if joined:
+            return joined
+    
+    raise ValueError("Gemini returned an empty response")
 
 
 async def get_llm_response(prompt: str, temperature: float = 0.7, max_retries: int = 2) -> str:
-    """Get response from LLM with automatic fallback."""
+    """Get response from LLM with Groq first approach, fallback to Gemini.
     
-    # Try Gemini first
-    if _configure_gemini():
-        for attempt in range(max_retries):
-            try:
-                response = await _call_gemini(prompt, temperature)
-                text = getattr(response, "text", None)
-                if text:
-                    return text
-                candidates = getattr(response, "candidates", None) or []
-                if candidates:
-                    parts = getattr(candidates[0].content, "parts", []) or []
-                    joined = "".join(getattr(part, "text", "") for part in parts).strip()
-                    if joined:
-                        return joined
-                raise ValueError("Gemini returned an empty response")
-            except Exception as e:
-                logger.warning(f"Gemini attempt {attempt + 1} failed: {e}")
-                if attempt < max_retries - 1:
-                    await asyncio.sleep(1)
-
-    # Try Groq fallback
+    Multiple API keys are supported (comma-separated) with round-robin selection.
+    Example: GROQ_API_KEY="key1,key2,key3"
+    """
+    errors = []
+    
+    # Try Groq first (primary provider)
     if _configure_groq():
-        try:
-            from groq import Groq
-            client = Groq(api_key=settings.groq_api_key)
-            response = await asyncio.get_event_loop().run_in_executor(
-                None,
-                lambda: client.chat.completions.create(
-                    model=settings.groq_model,
-                    messages=[{"role": "user", "content": prompt}],
-                    temperature=temperature,
-                    max_tokens=2048,
-                )
-            )
-            content = response.choices[0].message.content
-            if content:
-                return content
-            raise ValueError("Groq returned an empty response")
-        except Exception as e:
-            logger.error(f"Groq fallback failed: {e}")
+        groq_keys = _parse_api_keys(settings.groq_api_key)
+        for key_idx in range(min(len(groq_keys), max_retries + 1)):
+            for attempt in range(max_retries):
+                try:
+                    logger.info(f"Trying Groq (key {key_idx + 1}/{len(groq_keys)}, attempt {attempt + 1})")
+                    result = await _call_groq(prompt, temperature)
+                    logger.info("Groq succeeded")
+                    return result
+                except Exception as e:
+                    err_msg = f"Groq key {key_idx + 1} attempt {attempt + 1} failed: {e}"
+                    logger.warning(err_msg)
+                    errors.append(err_msg)
+                    if attempt < max_retries - 1:
+                        await asyncio.sleep(1)
     
-    # Try OpenAI fallback
-    if _configure_openai():
-        try:
-            import openai
-            # Use new SDK API
-            client = openai.OpenAI(api_key=settings.openai_api_key)
-            response = await asyncio.get_event_loop().run_in_executor(
-                None,
-                lambda: client.chat.completions.create(
-                    model=settings.openai_model,
-                    messages=[{"role": "user", "content": prompt}],
-                    temperature=temperature,
-                    max_tokens=2048
-                )
-            )
-            content = response.choices[0].message.content
-            if content:
-                return content
-            raise ValueError("OpenAI returned an empty response")
-        except Exception as e:
-            logger.error(f"OpenAI fallback failed: {e}")
+    # Fallback to Gemini
+    if _configure_gemini():
+        gemini_keys = _parse_api_keys(settings.gemini_api_key)
+        for key_idx in range(min(len(gemini_keys), max_retries + 1)):
+            for attempt in range(max_retries):
+                try:
+                    logger.info(f"Trying Gemini fallback (key {key_idx + 1}/{len(gemini_keys)}, attempt {attempt + 1})")
+                    result = await _call_gemini(prompt, temperature)
+                    logger.info("Gemini fallback succeeded")
+                    return result
+                except Exception as e:
+                    err_msg = f"Gemini key {key_idx + 1} attempt {attempt + 1} failed: {e}"
+                    logger.warning(err_msg)
+                    errors.append(err_msg)
+                    if attempt < max_retries - 1:
+                        await asyncio.sleep(1)
     
-    return "Unable to generate response. Please configure GEMINI_API_KEY, GROQ_API_KEY, or OPENAI_API_KEY in your .env file."
+    # All providers failed
+    error_summary = "\n".join(errors)
+    logger.error(f"All LLM providers failed:\n{error_summary}")
+    return f"Unable to generate response. Please configure GROQ_API_KEY or GEMINI_API_KEY in your .env file."
 
 
 async def simplify_text(text: str) -> str:

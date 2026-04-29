@@ -1,18 +1,18 @@
 import express from 'express';
-import multer from 'multer';
 import { handleUpload } from './upload.service.js';
 import { authenticateToken } from '../../middleware/auth.js';
+import { uploadMiddleware } from '../../core/middleware/uploadMiddleware.js';
 
 const router = express.Router();
-const upload = multer({ storage: multer.memoryStorage() });
 
-router.post('/', authenticateToken, upload.single('file'), async (req, res, next) => {
+router.post('/', authenticateToken, uploadMiddleware.single('file'), async (req, res, next) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
     }
     
     console.log('Upload request received:', req.file.originalname, req.file.mimetype, req.file.size);
+    console.log('File saved to:', req.file.path);
     
     const result = await handleUpload(req.file);
     res.json(result);

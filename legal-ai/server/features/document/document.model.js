@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 const documentSchema = new mongoose.Schema({
   documentId: { type: String, required: true, unique: true },
   filename: { type: String, required: true },
+  filePath: { type: String, default: '' }, // Path to local PDF file
   text: { type: String, default: '' },
   chunks: [{ type: String }],
   status: { type: String, enum: ['analyzed', 'pending', 'processing'], default: 'pending' },

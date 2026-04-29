@@ -1,11 +1,15 @@
+import fs from 'fs';
 import { callParser } from '../../core/services/pythonClient.js';
 import { Upload } from './upload.model.js';
 import { Document } from '../document/document.model.js';
 
 export const handleUpload = async (file) => {
   try {
+    // Read file from disk for parsing (since we now use disk storage)
+    const fileBuffer = fs.readFileSync(file.path);
+    
     // Forward to FastAPI for parsing
-    const parseResult = await callParser(file.buffer, file.originalname);
+    const parseResult = await callParser(fileBuffer, file.originalname);
     
     console.log('Parse result from Python:', parseResult);
     
@@ -23,27 +27,30 @@ export const handleUpload = async (file) => {
         success: true,
         documentId: documentId,
         filename: file.originalname,
+        filePath: file.path,
         chunkCount: parseResult.chunk_count || 0,
         documentType: parseResult.document_type || 'unknown',
         message: 'Document already processed'
       };
     }
     
-    // Store upload record
+    // Store upload record with file path
     await Upload.create({
       documentId: documentId,
       filename: parseResult.filename,
       originalName: file.originalname,
+      filePath: file.path, // Store the local file path
       mimeType: file.mimetype,
       size: file.size,
       status: 'completed',
       parsedData: parseResult
     });
     
-    // Store document for retrieval - map Python fields to Node.js schema
+    // Store document for retrieval with file path
     await Document.create({
       documentId: documentId,
       filename: parseResult.filename,
+      filePath: file.path, // Store the local file path for PDF viewer
       text: parseResult.text || '',
       chunks: parseResult.chunks || [],
       status: 'analyzed',
@@ -58,6 +65,7 @@ export const handleUpload = async (file) => {
       success: true,
       documentId: documentId,
       filename: file.originalname,
+      filePath: file.path,
       chunkCount: parseResult.chunk_count || 0,
       documentType: parseResult.document_type || 'unknown',
       message: 'Document uploaded and processed successfully'
@@ -71,6 +79,7 @@ export const handleUpload = async (file) => {
       documentId: `failed_${Date.now()}`,
       filename: file.originalname,
       originalName: file.originalname,
+      filePath: file.path,
       mimeType: file.mimetype,
       size: file.size,
       status: 'failed',

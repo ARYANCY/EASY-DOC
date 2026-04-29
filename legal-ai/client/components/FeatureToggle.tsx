@@ -46,37 +46,37 @@ export default function FeatureToggle({ featureKey, features, onToggle }: Featur
   const enabled = features[featureKey];
 
   return (
-    <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200 hover:border-purple-300 transition-colors">
+    <div className="flex items-center justify-between p-4 bg-[var(--vscode-hover)] border border-[var(--vscode-border)] hover:border-[var(--vscode-accent)] transition-colors">
       <div className="flex items-center gap-3">
         <div className={cn(
-          "w-10 h-10 rounded-lg flex items-center justify-center transition-colors",
-          enabled ? "bg-purple-100 text-purple-600" : "bg-gray-100 text-gray-400"
+          "w-10 h-10 flex items-center justify-center transition-colors",
+          enabled ? "bg-[var(--vscode-accent)] text-white" : "bg-[var(--vscode-input)] text-[var(--vscode-text-muted)]"
         )}>
           <Icon className="w-5 h-5" />
         </div>
         <div>
           <h3 className={cn(
             "font-medium transition-colors",
-            enabled ? "text-gray-900" : "text-gray-500"
+            enabled ? "text-[var(--vscode-text)]" : "text-[var(--vscode-text-muted)]"
           )}>
             {config.label}
           </h3>
-          <p className="text-sm text-gray-500">{config.description}</p>
+          <p className="text-sm text-[var(--vscode-text-muted)]">{config.description}</p>
         </div>
       </div>
-      
+
       {/* Toggle Switch */}
       <button
         onClick={() => onToggle(featureKey, !enabled)}
         className={cn(
-          "relative w-14 h-7 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2",
-          enabled ? "bg-purple-600" : "bg-gray-300"
+          "relative w-14 h-7 transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--vscode-accent)] focus:ring-offset-2 focus:ring-offset-[var(--vscode-bg)]",
+          enabled ? "bg-[var(--vscode-accent)]" : "bg-[var(--vscode-input)]"
         )}
         aria-label={`Toggle ${config.label}`}
       >
         <span
           className={cn(
-            "absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full shadow-sm transition-transform duration-200 ease-in-out",
+            "absolute top-0.5 left-0.5 w-6 h-6 bg-[var(--vscode-text)] shadow-sm transition-transform duration-200 ease-in-out",
             enabled ? "translate-x-7" : "translate-x-0"
           )}
         />

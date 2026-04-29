@@ -2,38 +2,41 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import Sidebar from '../../../components/Sidebar';
-import Header from '../../../components/Header';
-import PanelToggles from '../../../components/PanelToggles';
-import SlidePanel from '../../../components/SlidePanel';
-import BottomPanel from '../../../components/BottomPanel';
+import { ActivityBar, BottomPanel, ExplorerPanel, RightPanel } from '../../../components/PanelController';
 import RiskPanel from '../../../components/RiskPanel';
 import ChatPanel from '../../../components/ChatPanel';
 import DocumentSummary from '../../../components/DocumentSummary';
 import ClausesPanel from '../../../components/ClausesPanel';
 import { exportToPDF } from '../../../lib/utils/exportPDF';
+
 import {
   Download,
   Share2,
   FileText,
-  MessageSquare,
   Loader2,
   Files,
-  Search,
   ShieldAlert,
+  Scissors,
   Terminal,
   Settings,
-  PanelRight,
-  PanelLeft,
   X,
+  Search,
+  Code,
+  PanelLeft,
+  PanelRight,
+  MessageSquare,
   Sparkles,
+  LayoutDashboard,
 } from 'lucide-react';
+import Link from 'next/link';
+import Sidebar from '../../../components/Sidebar';
+import Header from '../../../components/Header';
 import { getDocument, simplifyDocument, Document } from '../../../features/document/documentService';
 import { getRiskAnalysis } from '../../../features/risk/riskService';
 import { extractClauses } from '../../../features/clause/clauseService';
 import { getFeatures, FeatureFlags } from '../../../lib/features';
 import { getCurrentUser } from '../../../features/auth/authService';
-import Link from 'next/link';
+import { cn } from '../../../lib/utils/cn';
 
 // Sample data - in production, fetch from your API
 const sampleClauses = [
@@ -93,7 +96,7 @@ export default function DocumentPage() {
   const router = useRouter();
   const documentId = params.id as string;
   
-  const [activeTab, setActiveTab] = useState<'original' | 'simplified' | 'clauses' | 'summary'>('original');
+  const [activeTab, setActiveTab] = useState<'pdf' | 'original' | 'simplified' | 'clauses' | 'summary'>('pdf');
   const [loading, setLoading] = useState(true);
   const [documentData, setDocumentData] = useState<Document | null>(null);
   const [riskData, setRiskData] = useState<any>(null);
@@ -111,6 +114,11 @@ export default function DocumentPage() {
   const [showBottomPanel, setShowBottomPanel] = useState(false);
   const [bottomTab, setBottomTab] = useState<'risk' | 'actions' | 'clauses'>('risk');
   const [errors, setErrors] = useState<string[]>([]);
+
+  // NEW: Document view modes and search state - MOVED HERE to fix hooks error
+  const [viewMode, setViewMode] = useState<'pdf' | 'parsed'>('pdf');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [highlightedRanges, setHighlightedRanges] = useState<Array<{start: number, end: number}>>([]);
 
   useEffect(() => {
     const currentUser = getCurrentUser();
@@ -154,6 +162,20 @@ export default function DocumentPage() {
       JSON.stringify({ showExplorer, showChat, showRisk, showClauses, showSummary, showBottomPanel, bottomTab })
     );
   }, [showExplorer, showChat, showRisk, showClauses, showSummary, showBottomPanel, bottomTab]);
+
+  // Load view mode preference from local storage
+  useEffect(() => {
+    const savedViewMode = typeof window !== 'undefined' ? localStorage.getItem('legal-ai-document-view-mode') : null;
+    if (savedViewMode === 'pdf' || savedViewMode === 'parsed') {
+      setViewMode(savedViewMode);
+    }
+  }, []);
+
+  // Save view mode preference to local storage
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem('legal-ai-document-view-mode', viewMode);
+  }, [viewMode]);
 
   useEffect(() => {
     if (!user || !documentId) return;
@@ -204,11 +226,89 @@ export default function DocumentPage() {
     });
   };
 
+  // NEW: Search and highlight function with lime green
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    if (!query.trim() || !documentData?.text) {
+      setHighlightedRanges([]);
+      return;
+    }
+
+    // Find all occurrences (case-insensitive)
+    const text = documentData.text.toLowerCase();
+    const searchLower = query.toLowerCase();
+    const ranges: Array<{start: number, end: number}> = [];
+    let index = text.indexOf(searchLower);
+
+    while (index !== -1) {
+      ranges.push({ start: index, end: index + query.length });
+      index = text.indexOf(searchLower, index + 1);
+    }
+
+    setHighlightedRanges(ranges);
+  };
+
+  const renderHighlightedText = (text: string, lineIndex: number) => {
+    if (!searchQuery || highlightedRanges.length === 0) {
+      return <span className="whitespace-pre-wrap">{text}</span>;
+    }
+
+    // Calculate offset of this line in the full text
+    const lineStartOffset = textLines.slice(0, lineIndex).join('\n').length + (lineIndex > 0 ? 1 : 0);
+    const elements: React.ReactNode[] = [];
+    const lineEndOffset = lineStartOffset + text.length;
+    let lastEnd = 0;
+
+    // Filter ranges that intersect with this line
+    const lineRanges = highlightedRanges.filter(r =>
+      r.start < lineEndOffset && r.end > lineStartOffset
+    );
+
+    if (lineRanges.length === 0) {
+      return <span className="whitespace-pre-wrap">{text}</span>;
+    }
+
+    lineRanges.forEach((range, i) => {
+      const relStart = Math.max(0, range.start - lineStartOffset);
+      const relEnd = Math.min(text.length, range.end - lineStartOffset);
+
+      // Add text before highlight
+      if (relStart > lastEnd) {
+        elements.push(
+          <span key={`text-${i}`} className="whitespace-pre-wrap">
+            {text.slice(lastEnd, relStart)}
+          </span>
+        );
+      }
+      // Add highlighted text in LIME GREEN
+      elements.push(
+        <span
+          key={`highlight-${i}`}
+          className="bg-[var(--search-highlight)] text-black font-semibold px-0.5"
+        >
+          {text.slice(relStart, relEnd)}
+        </span>
+      );
+      lastEnd = relEnd;
+    });
+
+    // Add remaining text
+    if (lastEnd < text.length) {
+      elements.push(
+        <span key="text-end" className="whitespace-pre-wrap">
+          {text.slice(lastEnd)}
+        </span>
+      );
+    }
+
+    return <>{elements}</>;
+  };
+
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center editorial-shell">
-        <div className="flex items-center gap-3 text-[#181715]">
-          <Loader2 className="w-6 h-6 animate-spin" />
+      <div className="flex h-screen items-center justify-center bg-[var(--vscode-bg)]">
+        <div className="flex items-center gap-3 text-[var(--vscode-text)]">
+          <Loader2 className="w-6 h-6 animate-spin text-[var(--vscode-accent)]" />
           <span className="font-medium">Loading document analysis...</span>
         </div>
       </div>
@@ -252,9 +352,15 @@ export default function DocumentPage() {
 
         <div className="flex min-h-0 flex-1">
           <aside className="flex w-12 shrink-0 flex-col items-center border-r border-[#2d2d2d] bg-[#181818] py-2">
+            {/* Dashboard Link - Top */}
+            <Link href="/" className="mb-1 flex h-10 w-10 items-center justify-center border-l-2 border-transparent text-[#858585] hover:bg-[#2a2d2e] hover:text-white" title="Dashboard">
+              <LayoutDashboard className="h-5 w-5" />
+            </Link>
+            
+            <div className="w-full h-px bg-[#2d2d2d] my-1" />
+            
             {[
               { icon: Files, label: 'Explorer', action: () => setShowExplorer(!showExplorer), active: showExplorer },
-              { icon: Search, label: 'Search', href: '/search' },
               { icon: ShieldAlert, label: 'Risk', action: () => { setShowBottomPanel(true); setBottomTab('risk'); }, active: showBottomPanel && bottomTab === 'risk' },
               { icon: MessageSquare, label: 'Chat', action: () => setShowChat(!showChat), active: showChat },
             ].map((item) => {
@@ -262,11 +368,7 @@ export default function DocumentPage() {
               const itemClassName = `mb-1 flex h-10 w-10 items-center justify-center border-l-2 ${
                 item.active ? 'border-white bg-[#2a2d2e] text-white' : 'border-transparent text-[#858585] hover:bg-[#2a2d2e] hover:text-white'
               }`;
-              return item.href ? (
-                <Link key={item.label} href={item.href} className={itemClassName} title={item.label}>
-                  <Icon className="h-5 w-5" />
-                </Link>
-              ) : (
+              return (
                 <button key={item.label} onClick={item.action} className={itemClassName} title={item.label}>
                   <Icon className="h-5 w-5" />
                 </button>
@@ -293,23 +395,6 @@ export default function DocumentPage() {
                     <span className="truncate">{fileName}</span>
                   </button>
                 </div>
-                <div>
-                  <p className="mb-2 text-[11px] uppercase text-[#858585]">User Layout</p>
-                  {[
-                    { label: 'Right Chat', checked: showChat, action: () => setShowChat(!showChat) },
-                    { label: 'Risk Terminal', checked: showRisk, action: () => setShowRisk(!showRisk) },
-                    { label: 'Clauses', checked: showClauses, action: () => setShowClauses(!showClauses) },
-                    { label: 'Summary', checked: showSummary, action: () => setShowSummary(!showSummary) },
-                    { label: 'Bottom Panel', checked: showBottomPanel, action: () => setShowBottomPanel(!showBottomPanel) },
-                  ].map((item) => (
-                    <button key={item.label} onClick={item.action} className="flex w-full items-center justify-between px-2 py-1.5 text-[#cccccc] hover:bg-[#2a2d2e]">
-                      <span>{item.label}</span>
-                      <span className={`h-3 w-6 border ${item.checked ? 'border-[#0e639c] bg-[#0e639c]' : 'border-[#858585]'}`}>
-                        <span className={`block h-full w-1/2 bg-white transition-transform ${item.checked ? 'translate-x-full' : ''}`} />
-                      </span>
-                    </button>
-                  ))}
-                </div>
                 <div className="border-t border-[#3c3c3c] pt-3 text-xs text-[#858585]">
                   <p>Pages: {documentData?.metadata?.pageCount || 0}</p>
                   <p>Words: {totalWords.toLocaleString()}</p>
@@ -320,40 +405,88 @@ export default function DocumentPage() {
           )}
 
           <main className="flex min-w-0 flex-1 flex-col">
-            <div className="flex h-9 shrink-0 overflow-x-auto border-b border-[#2d2d2d] bg-[#252526]">
-              {[
-                { id: 'original', label: fileName, enabled: true },
-                { id: 'simplified', label: 'simplified.txt', enabled: true },
-                { id: 'clauses', label: 'clauses.json', enabled: clauseExtractionEnabled },
-                { id: 'summary', label: 'summary.md', enabled: documentSummaryEnabled },
-              ].filter(tab => tab.enabled).map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex min-w-40 items-center gap-2 border-r border-[#2d2d2d] px-3 text-left text-xs ${
-                    activeTab === tab.id ? 'bg-[#1e1e1e] text-white' : 'bg-[#2d2d2d] text-[#cccccc] hover:bg-[#333333]'
-                  }`}
-                >
-                  <FileText className="h-3.5 w-3.5 text-[#c586c0]" />
-                  <span className="truncate">{tab.label}</span>
-                </button>
-              ))}
+            {/* Tab Bar with PDF View and Search */}
+            <div className="flex h-9 shrink-0 border-b border-[#2d2d2d] bg-[#252526]">
+              {/* Left: Tabs */}
+              <div className="flex overflow-x-auto">
+                {[
+                  { id: 'pdf', label: 'PDF View', enabled: true },
+                  { id: 'original', label: 'Parsed Text', enabled: true },
+                  { id: 'simplified', label: 'Simplified', enabled: true },
+                  { id: 'clauses', label: 'Clauses', enabled: clauseExtractionEnabled },
+                  { id: 'summary', label: 'Summary', enabled: documentSummaryEnabled },
+                ].filter(tab => tab.enabled).map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id as any)}
+                    className={`flex min-w-[100px] items-center gap-2 border-r border-[#2d2d2d] px-3 text-left text-xs ${
+                      activeTab === tab.id ? 'bg-[#1e1e1e] text-white' : 'bg-[#2d2d2d] text-[#cccccc] hover:bg-[#333333]'
+                    }`}
+                  >
+                    <FileText className="h-3.5 w-3.5 text-[#c586c0]" />
+                    <span className="truncate">{tab.label}</span>
+                  </button>
+                ))}
+              </div>
+              
+              {/* Right: Search Box */}
+              {(activeTab === 'original' || activeTab === 'simplified') && (
+                <div className="flex items-center gap-2 px-3 ml-auto">
+                  <div className="relative">
+                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#858585]" />
+                    <input
+                      type="text"
+                      placeholder="Search..."
+                      value={searchQuery}
+                      onChange={(e) => handleSearch(e.target.value)}
+                      className="w-40 bg-[#3c3c3c] border border-[#2d2d2d] text-white text-xs pl-7 pr-2 py-1 focus:outline-none focus:border-[#0e639c]"
+                    />
+                    {searchQuery && (
+                      <button
+                        onClick={() => handleSearch('')}
+                        className="absolute right-1 top-1/2 -translate-y-1/2 text-[#858585] hover:text-white"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    )}
+                  </div>
+                  {highlightedRanges.length > 0 && (
+                    <span className="text-xs text-[#858585]">
+                      {highlightedRanges.length} matches
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
 
-            <div className="min-h-0 flex-1 overflow-auto bg-[#1e1e1e] font-mono text-sm leading-6">
+            <div className="min-h-0 flex-1 overflow-auto bg-[#1e1e1e]">
+              {/* PDF Viewer */}
+              {activeTab === 'pdf' && (
+                <div className="h-full w-full">
+                  <iframe
+                    src={documentData?.filePath ? `/api/documents/${documentId}/file` : undefined}
+                    className="w-full h-full border-0"
+                    title="PDF Viewer"
+                  />
+                </div>
+              )}
+              
+              {/* Text View with Search Highlighting */}
               {(activeTab === 'original' || activeTab === 'simplified') && (
-                <div className="min-w-full py-4">
+                <div className="min-w-full py-4 font-mono text-sm leading-6">
                   {textLines.map((line, index) => (
                     <div key={`${index}-${line.slice(0, 8)}`} className="grid grid-cols-[4rem_minmax(0,1fr)] px-2 hover:bg-[#2a2d2e]">
                       <span className="select-none pr-4 text-right text-[#858585]">{index + 1}</span>
-                      <span className="whitespace-pre-wrap pr-6 text-[#d4d4d4]">{line || ' '}</span>
+                      <span className="whitespace-pre-wrap pr-6 text-[#d4d4d4]">
+                        {renderHighlightedText(line, index)}
+                      </span>
                     </div>
                   ))}
                 </div>
               )}
               {activeTab === 'clauses' && (
                 <div className="p-4">
-                  {showClauses ? <ClausesPanel clauses={clauseList} /> : <p className="text-[#858585]">Clauses view is hidden from Explorer preferences.</p>}
+                  <ClausesPanel clauses={clauseList} />
                 </div>
               )}
               {activeTab === 'summary' && (
@@ -414,7 +547,6 @@ export default function DocumentPage() {
                       ))}
                     </div>
                   )}
-                  {bottomTab === 'risk' && !showRisk && <p className="text-sm text-[#858585]">Risk terminal is hidden from Explorer preferences.</p>}
                   {bottomTab === 'actions' && (
                     <div className="flex flex-wrap gap-3">
                       {pdfExportEnabled && (
@@ -437,8 +569,7 @@ export default function DocumentPage() {
                       )}
                     </div>
                   )}
-                  {bottomTab === 'clauses' && showClauses && <ClausesPanel clauses={clauseList} />}
-                  {bottomTab === 'clauses' && !showClauses && <p className="text-sm text-[#858585]">Clauses panel is hidden from Explorer preferences.</p>}
+                  {bottomTab === 'clauses' && <ClausesPanel clauses={clauseList} />}
                 </div>
               </section>
             )}
@@ -485,18 +616,7 @@ export default function DocumentPage() {
           documentName="Non-Disclosure Agreement.pdf"
           uploadDate="20 May 2025 • 12:30 PM"
           fileSize="5.2 MB"
-        >
-          <PanelToggles
-            showChat={showChat}
-            showRisk={showRisk}
-            showClauses={showClauses}
-            showSummary={showSummary}
-            onToggleChat={() => setShowChat(!showChat)}
-            onToggleRisk={() => setShowRisk(!showRisk)}
-            onToggleClauses={() => setShowClauses(!showClauses)}
-            onToggleSummary={() => setShowSummary(!showSummary)}
-          />
-        </Header>
+        />
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-auto">

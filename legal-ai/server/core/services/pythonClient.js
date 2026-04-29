@@ -79,12 +79,29 @@ export const callRisk = async (documentId) => {
 };
 
 export const callSimplify = async (text) => {
-  return withRetry(async () => {
-    const response = await pythonApi.post('/simplify/', {
-      text,
+  try {
+    return await withRetry(async () => {
+      const response = await pythonApi.post('/simplify/', {
+        text,
+      });
+      return response.data;
     });
-    return response.data;
-  });
+  } catch (error) {
+    // Log detailed error info
+    if (error.response?.status === 422) {
+      console.error('[Python API] 422 Validation Error:', error.response?.data);
+      console.error('[Python API] Request body was:', { text: text?.substring(0, 100) + '...' });
+    }
+    
+    // Return fallback simplified text (first 500 chars)
+    console.warn('[Python API] Simplify failed, returning fallback');
+    return {
+      simplified: text?.substring(0, 1000) || 'Unable to simplify document. The AI service is temporarily unavailable.',
+      original_length: text?.length || 0,
+      simplified_length: Math.min(text?.length || 0, 1000),
+      fallback: true
+    };
+  }
 };
 
 export const callSearch = async (query, documentId) => {
