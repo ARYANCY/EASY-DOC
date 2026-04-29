@@ -1,0 +1,41 @@
+NON-DISCLOSURE AGREEMENT
+
+This Non-Disclosure Agreement ("Agreement") is entered into as of May 20, 2025, between ACME Corporation ("Disclosing Party") and Beta Solutions Inc. ("Receiving Party").
+
+1. Confidential Information
+1.1 The Disclosing Party may disclose certain confidential and proprietary information ("Confidential Information") to the Receiving Party for the purpose of evaluating a potential business relationship.
+1.2 Confidential Information includes all information disclosed by the Disclosing Party, whether oral or written, that is designated as confidential or that reasonably should be understood to be confidential.
+
+2. Obligations of Receiving Party
+2.1 The Receiving Party shall hold and maintain the Confidential Information in strict confidence and shall not, without the prior written consent of the Disclosing Party, disclose any Confidential Information to any third party.
+2.2 The Receiving Party shall use the Confidential Information solely for the purpose of evaluating the potential business relationship.
+2.3 The Receiving Party shall be solely liable for any unauthorized disclosure of Confidential Information and shall indemnify and hold harmless the Disclosing Party from any losses, damages, or expenses arising from such disclosure.
+
+3. Term and Termination
+3.1 The obligations of confidentiality set forth in this Agreement shall remain in effect for a period of 3 (three) years from the Effective Date.
+3.2 This Agreement may be terminated by either party upon 30 days written notice to the other party.
+
+4. Liability
+4.1 The Receiving Party shall be fully liable for all damages arising from any breach of this Agreement, without limitation of liability.
+4.2 In no event shall the Disclosing Party be liable for any indirect, incidental, or consequential damages.
+
+5. Intellectual Property
+5.1 All intellectual property rights in the Confidential Information shall remain with the Disclosing Party.
+5.2 The Receiving Party acknowledges that all work for hire produced during the term of this Agreement shall be assigned to the Disclosing Party.
+
+6. Governing Law
+6.1 This Agreement shall be governed by and construed in accordance with the laws of the courts of New York.
+6.2 Any disputes arising out of this Agreement shall be resolved by arbitration in New York.
+
+7. General Provisions
+7.1 This Agreement constitutes the entire agreement between the parties with respect to its subject matter.
+7.2 This Agreement may be amended only by a written instrument signed by both parties.
+7.3 The Disclosing Party reserves the right to modify the terms of this Agreement at any time at its sole discretion.
+
+AGREED AND ACCEPTED:
+
+ACME Corporation                    Beta Solutions Inc.
+By: _____________________          By: _____________________
+Name: John Smith                   Name: Jane Doe
+Title: CEO                         Title: CTO
+Date: May 20, 2025                Date: May 20, 2025

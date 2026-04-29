@@ -1,0 +1,14 @@
+# Ignore node_modules wherever they are
+**/node_modules/
+
+# Ignore env files wherever they are
+**/.env
+**/.env.local
+
+# Ignore build/cache folders
+**/.next/
+**/__pycache__/
+
+# Specific config files if you want to keep your local versions
+legal-ai/client/tsconfig.json
+legal-ai/client/next-env.d.ts
