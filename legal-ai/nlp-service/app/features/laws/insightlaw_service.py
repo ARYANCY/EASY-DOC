@@ -214,30 +214,23 @@ class InsightLawService:
     
     async def fetch_laws(self, entities: List[str], jurisdiction: Optional[str] = "India") -> List[Dict]:
         """
-        Main method to fetch laws for extracted entities.
-        
-        Args:
-            entities: List of legal entities (e.g., ["Section 302 IPC", "Article 21"])
-            jurisdiction: Currently only "India" supported
-            
-        Returns:
-            List of law references with summaries and links
+        Main method to fetch laws for extracted entities with parallel resolution.
         """
         if not entities:
             return []
         
         logger.info(f"Fetching laws for {len(entities)} entities: {entities}")
         
-        results = []
+        # Parallelize entity resolution for efficiency
+        tasks = [self._resolve_entity(entity) for entity in entities[:5]]
+        resolved_results = await asyncio.gather(*tasks, return_exceptions=True)
         
-        for entity in entities[:5]:  # Process max 5 entities
-            try:
-                law_data = await self._resolve_entity(entity)
-                if law_data:
-                    results.append(law_data)
-            except Exception as e:
-                logger.warning(f"Failed to resolve entity '{entity}': {e}")
-                continue
+        results = []
+        for i, res in enumerate(resolved_results):
+            if isinstance(res, Exception):
+                logger.warning(f"Failed to resolve entity '{entities[i]}': {res}")
+            elif res:
+                results.append(res)
         
         logger.info(f"Resolved {len(results)} laws from {len(entities)} entities")
         return results

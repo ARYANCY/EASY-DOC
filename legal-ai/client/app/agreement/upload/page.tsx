@@ -84,9 +84,9 @@ export default function AgreementUploadPage() {
       setUploadProgress(100);
       setUploadResult(result);
       
-      if (result.agreementId) {
+      if (result.success && result.agreement?.agreementId) {
         setTimeout(() => {
-          router.push(`/agreement/${result.agreementId}`);
+          router.push(`/agreement/${result.agreement.agreementId}`);
         }, 1500);
       }
     } catch (err) {
@@ -188,15 +188,16 @@ export default function AgreementUploadPage() {
                   </div>
                 </div>
               ) : uploadResult ? (
-                <div className="flex flex-col items-center gap-4">
-                  <div className="w-16 h-16 bg-[var(--vscode-accent)] flex items-center justify-center">
-                    <CheckCircle className="w-8 h-8 text-white" />
+                <div className="flex flex-col items-center gap-6 py-8 animate-in fade-in zoom-in duration-500">
+                  <div className="w-20 h-20 bg-[var(--vscode-accent)] flex items-center justify-center rounded-full shadow-[0_0_30px_rgba(14,99,156,0.3)]">
+                    <CheckCircle className="w-10 h-10 text-white animate-in zoom-in spin-in-12 duration-700 delay-200" />
                   </div>
-                  <div>
-                    <p className="text-2xl font-light text-[var(--vscode-text)]">Upload successful!</p>
-                    <p className="text-[var(--vscode-text-muted)] mt-1 text-sm">
-                      Opening drafting environment...
-                    </p>
+                  <div className="space-y-2">
+                    <p className="text-3xl font-light text-[var(--vscode-text)] tracking-tight">Upload successful!</p>
+                    <div className="flex items-center justify-center gap-2 text-[var(--vscode-text-muted)]">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <p className="text-sm">Opening drafting environment...</p>
+                    </div>
                   </div>
                 </div>
               ) : (

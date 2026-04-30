@@ -248,7 +248,7 @@ export default function DocumentPage() {
     exportToPDF({
       documentName: documentData?.filename || 'Document.pdf',
       summary: riskData?.summary || 'Summary not available',
-      riskScore: riskData?.risk_score || 0,
+      riskScore: riskData?.riskScore || 0,
       riskFlags: riskData?.flags || sampleRiskFlags,
       clauses: clausesData.length > 0 ? clausesData.map((c: any) => ({ title: c.title, description: c.description })) : sampleClauses.map(c => ({ title: c.title, description: c.description })),
     });
@@ -348,7 +348,7 @@ export default function DocumentPage() {
     ? simplifiedText || 'Simplified text not available'
     : documentData?.text || 'No document text available';
   const textLines = currentText.split('\n');
-  const riskFlags = riskData?.flags || sampleRiskFlags;
+  const riskFlags = (riskData?.flags && riskData.flags.length > 0) ? riskData.flags : sampleRiskFlags;
   
   // Map backend clauses to frontend expected format, or use empty array
   const clauseList = clausesData.map(c => ({
@@ -435,7 +435,7 @@ export default function DocumentPage() {
                 <div className="border-t border-[#3c3c3c] pt-3 text-xs text-[#858585]">
                   <p>Pages: {documentData?.metadata?.pageCount || 0}</p>
                   <p>Words: {totalWords.toLocaleString()}</p>
-                  <p>Risk: {riskData?.risk_score ?? 0}/100</p>
+                  <p>Risk: {riskData?.riskScore ?? 0}/100</p>
                 </div>
                 
                 {/* Recent Documents */}
@@ -604,7 +604,7 @@ export default function DocumentPage() {
                   </button>
                 </div>
                 <div className="h-[calc(100%-2.25rem)] overflow-auto p-3">
-                  {bottomTab === 'risk' && showRisk && (
+                  {bottomTab === 'risk' && (
                     <div className="grid gap-3 md:grid-cols-3">
                       {riskFlags.map((flag: any, index: number) => (
                         <div key={index} className="border border-[#3c3c3c] bg-[#1e1e1e] p-3">
@@ -668,181 +668,7 @@ export default function DocumentPage() {
 
         <div className="flex h-6 shrink-0 items-center justify-between bg-[#007acc] px-3 text-[11px] text-white">
           <span className="truncate">{fileName}</span>
-          <span className="shrink-0">{totalWords.toLocaleString()} words · Risk {riskData?.risk_score ?? 0}/100</span>
-        </div>
-      </div>
-    </div>
-  );
-
-  return (
-    <div className="flex h-screen editorial-shell">
-      {/* Sidebar */}
-      <Sidebar className="w-64 shrink-0 hidden lg:flex" />
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Header */}
-        <Header
-          documentName="Non-Disclosure Agreement.pdf"
-          uploadDate="20 May 2025 • 12:30 PM"
-          fileSize="5.2 MB"
-        />
-
-        {/* Scrollable Content */}
-        <div className="flex-1 overflow-auto">
-          <div className="p-4 sm:p-6">
-            {/* Tabs */}
-            <div className="flex items-center gap-1 mb-6 bg-[#fffdf9] p-1 border border-[#e8e1d8] w-full overflow-x-auto lg:w-fit">
-              {[
-                { id: 'original', label: 'Original Document', icon: FileText, enabled: true },
-                { id: 'simplified', label: 'Simplified Version', icon: FileText, enabled: true },
-                { id: 'clauses', label: 'Key Clauses', icon: FileText, enabled: clauseExtractionEnabled },
-                { id: 'laws', label: 'Applicable Laws', icon: Landmark, enabled: true },
-                { id: 'summary', label: 'Summary', icon: FileText, enabled: documentSummaryEnabled },
-              ]
-                .filter(tab => tab.enabled)
-                .map((tab) => {
-                  const Icon = tab.icon;
-                  return (
-                    <button
-                      key={tab.id}
-                      onClick={() => setActiveTab(tab.id as any)}
-                      className={`flex items-center gap-2 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.12em] whitespace-nowrap transition-colors ${
-                        activeTab === tab.id
-                          ? 'bg-[#181715] text-[#fffdf9]'
-                          : 'text-[#777169] hover:bg-[#f7f4ef] hover:text-[#181715]'
-                      }`}
-                    >
-                      <Icon className="w-4 h-4" />
-                      {tab.label}
-                    </button>
-                  );
-                })}
-            </div>
-
-            {/* Main Grid */}
-            <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.55fr)_minmax(360px,0.9fr)] gap-5">
-              {/* Left Column - Document Content */}
-              <div className="xl:col-span-2 space-y-6">
-                {/* Document Viewer Card */}
-                <div className="editorial-card overflow-hidden">
-                  {/* Toolbar */}
-                  <div className="flex items-center justify-between px-4 py-3 border-b border-[#e8e1d8] bg-[#fffdf9]">
-                    <div className="flex items-center gap-2">
-                        <button className="p-1.5 hover:bg-[#f7f4ef]">
-                        <span className="sr-only">Menu</span>
-                        <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                        </svg>
-                      </button>
-                      <div className="flex items-center gap-2 ml-4">
-                        <button className="p-1.5 hover:bg-[#f7f4ef] text-[#777169]">{'<'}</button>
-                        <span className="text-sm text-[#777169]">1 / 12</span>
-                        <button className="p-1.5 hover:bg-[#f7f4ef] text-[#777169]">{'>'}</button>
-                      </div>
-                      <div className="flex items-center gap-2 ml-4">
-                        <button className="p-1.5 hover:bg-[#f7f4ef] text-[#777169]">-</button>
-                        <span className="text-sm text-[#777169]">100%</span>
-                        <button className="p-1.5 hover:bg-[#f7f4ef] text-[#777169]">+</button>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button className="p-1.5 hover:bg-[#f7f4ef] text-[#777169]">
-                        <Download className="w-5 h-5" />
-                      </button>
-                      <button className="p-1.5 hover:bg-[#f7f4ef] text-[#777169]">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Document Content */}
-                  <div className="p-4 sm:p-8 min-h-[600px] bg-[#f3eee6]">
-                    {activeTab === 'original' && (
-                      <div className="bg-[#fffdf9] p-6 sm:p-10 shadow-sm max-w-3xl mx-auto border border-[#e8e1d8]">
-                        <p className="editorial-label mb-3">Original Document</p>
-                        <h2 className="font-editorial text-3xl mb-6 text-[#181715]">Document Content</h2>
-                        <p className="text-[#3f3a35] mb-4 leading-8 whitespace-pre-wrap">
-                          {documentData?.text || 'No document text available'}
-                        </p>
-                      </div>
-                    )}
-                    {activeTab === 'simplified' && (
-                      <div className="bg-[#fffdf9] p-6 sm:p-10 shadow-sm max-w-3xl mx-auto border border-[#e8e1d8]">
-                        <p className="editorial-label mb-3">Plain English</p>
-                        <h2 className="font-editorial text-3xl mb-6 text-[#181715]">Simplified Version</h2>
-                        <p className="text-[#3f3a35] mb-4 leading-8">
-                          {simplifiedText || 'Simplified text not available'}
-                        </p>
-                      </div>
-                    )}
-                    {activeTab === 'clauses' && (
-                      <ClausesPanel clauses={(clausesData && clausesData.length > 0) ? clausesData : sampleClauses} />
-                    )}
-                    {activeTab === 'laws' && (
-                      <ApplicableLawsPanel documentId={documentId} documentText={documentData?.text} />
-                    )}
-                    {activeTab === 'summary' && (
-                      <DocumentSummary
-                        summary={riskData?.summary || 'Summary not available'}
-                        totalPages={documentData?.metadata?.pageCount || 0}
-                        totalWords={documentData?.text?.split(' ').length || 0}
-                        analyzedAt={new Date(documentData?.createdAt || Date.now()).toLocaleDateString()}
-                      />
-                    )}
-                  </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex flex-wrap items-center gap-3">
-                  {pdfExportEnabled && (
-                    <>
-                      <button
-                        onClick={handleExportPDF}
-                    className="editorial-button-light"
-                      >
-                        <Download className="w-4 h-4" />
-                        Download Report
-                      </button>
-                      <button
-                        onClick={handleExportPDF}
-                        className="editorial-button-light"
-                      >
-                        <FileText className="w-4 h-4" />
-                        Export as PDF
-                      </button>
-                    </>
-                  )}
-                  {shareReportEnabled && (
-                    <button className="editorial-button-light">
-                      <Share2 className="w-4 h-4" />
-                      Share Report
-                    </button>
-                  )}
-                  {chatbotEnabled && (
-                    <button className="editorial-button ml-auto">
-                      <MessageSquare className="w-4 h-4" />
-                      Start New Chat
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Right Column - Risk & Chat */}
-              {(riskAnalysisEnabled || chatbotEnabled) && (
-                <div className="space-y-5">
-                  {riskAnalysisEnabled && (
-                    <RiskPanel riskScore={riskData?.risk_score || 0} flags={riskData?.flags || sampleRiskFlags} />
-                  )}
-                  {chatbotEnabled && (
-                    <ChatPanel documentId={documentId} className="h-[500px]" />
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
+          <span className="shrink-0">{totalWords.toLocaleString()} words · Risk {riskData?.riskScore ?? 0}/100</span>
         </div>
       </div>
     </div>

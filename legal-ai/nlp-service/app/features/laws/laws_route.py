@@ -110,16 +110,21 @@ async def analyze_laws(request: AnalyzeLawsRequest):
             source = "llm_fallback"
             
             try:
-                prompt = f"""You are a legal document analysis AI. Extract all legal references EXPLICITLY mentioned in the provided document text.
-                CRITICAL: ONLY extract laws, acts, statutes, or cases that are directly written in the text. Do NOT infer or guess any laws that are not explicitly stated.
-                If NO laws or legal entities are explicitly mentioned, return an empty JSON array: []
+                prompt = f"""You are a legal document analysis AI. Extract all legal references mentioned in the provided document text.
+                
+                Identify:
+                1. Laws, acts, or statutes EXPLICITLY named.
+                2. Relevant legal frameworks or regulations that are HIGHLY APPLICABLE to the content (e.g., if it's an employment contract in India, mention 'Indian Contract Act' and 'Industrial Disputes Act').
+                
+                If NO laws are mentioned and none can be reliably inferred, return an empty JSON array: []
+                
                 Output Format - JSON Array with this exact structure:
-                [{{ "law_name": "Exact Name of Act/Statute", "section": "Section number if mentioned", "article": "Article number if mentioned", "context": "Brief description of what this law covers in 1-2 sentences", "link": "", "importance": "high|medium|low", "category": "statute|regulation|case_law|constitutional" }}]
+                [{{ "law_name": "Name of Act/Statute", "section": "Section number if applicable", "article": "Article number if applicable", "context": "Explain WHY this law applies to this specific document in 1-2 sentences", "link": "", "importance": "high|medium|low", "category": "statute|regulation|case_law|constitutional" }}]
+                
                 Constraints: 
                 - Only output valid raw JSON array
                 - Keep to 5 most relevant laws maximum
-                - Context should be descriptive and helpful
-                - If no laws found, return: []
+                - Focus on accurate and helpful legal context
                 
                 Document Text (excerpt):
                 {text_excerpt}

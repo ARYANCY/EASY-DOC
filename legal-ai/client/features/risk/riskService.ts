@@ -1,7 +1,7 @@
 import api from '../../lib/axiosInstance';
 
 export interface RiskResponse {
-  risk_score: number;
+  riskScore: number;
   flags: any[];
   summary: string;
 }

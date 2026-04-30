@@ -40,7 +40,7 @@ export default function AgreementPage() {
   useEffect(() => {
     if (!agreementId) return;
     getAgreement(agreementId)
-      .then(setAgreement)
+      .then(res => setAgreement(res.agreement))
       .catch((err) => {
         console.error(err);
         // Could handle error here
@@ -61,8 +61,8 @@ export default function AgreementPage() {
     setActionLoading(true);
 
     try {
-      const updatedAgreement = await generateAgreement(agreement.agreementId, input, currentText);
-      setAgreement(updatedAgreement);
+      const res = await generateAgreement(agreement.agreementId, input, currentText);
+      setAgreement(res.agreement);
       setMessages(prev => [...prev, { role: 'assistant', content: 'I have updated the agreement text based on your request.' }]);
     } catch (error) {
       console.error(error);
@@ -75,8 +75,8 @@ export default function AgreementPage() {
   const handleTextEdit = async (newText: string) => {
     if (!agreement || newText === currentText || agreement.status !== 'draft') return;
     try {
-      const updated = await editAgreement(agreement.agreementId, newText);
-      setAgreement(updated);
+      const res = await editAgreement(agreement.agreementId, newText);
+      setAgreement(res.agreement);
     } catch (error) {
       console.error('Failed to save manual edit', error);
     }
@@ -86,8 +86,8 @@ export default function AgreementPage() {
     if (!agreement || !canUndo) return;
     setActionLoading(true);
     try {
-      const updated = await setVersion(agreement.agreementId, agreement.currentVersion - 1);
-      setAgreement(updated);
+      const res = await setVersion(agreement.agreementId, agreement.currentVersion - 1);
+      setAgreement(res.agreement);
     } catch (e) {
       console.error(e);
     } finally {
@@ -99,8 +99,8 @@ export default function AgreementPage() {
     if (!agreement || !canRedo) return;
     setActionLoading(true);
     try {
-      const updated = await setVersion(agreement.agreementId, agreement.currentVersion + 1);
-      setAgreement(updated);
+      const res = await setVersion(agreement.agreementId, agreement.currentVersion + 1);
+      setAgreement(res.agreement);
     } catch (e) {
       console.error(e);
     } finally {
@@ -112,8 +112,8 @@ export default function AgreementPage() {
     if (!agreement) return;
     setActionLoading(true);
     try {
-      const updated = await approveAgreement(agreement.agreementId);
-      setAgreement(updated);
+      const res = await approveAgreement(agreement.agreementId);
+      setAgreement(res.agreement);
     } catch (e) {
       console.error(e);
     } finally {
@@ -125,8 +125,8 @@ export default function AgreementPage() {
     if (!agreement) return;
     setActionLoading(true);
     try {
-      const updated = await injectPdf(agreement.agreementId);
-      setAgreement(updated);
+      const res = await injectPdf(agreement.agreementId);
+      setAgreement(res.agreement);
     } catch (e) {
       console.error(e);
     } finally {
@@ -156,7 +156,7 @@ export default function AgreementPage() {
   }
 
   // Fetch the PDF file via the new API endpoint
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+  const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api').replace('localhost', '127.0.0.1');
   const pdfUrl = `${baseUrl}/agreement/${agreement.agreementId}/file`;
   
   // Security: Never use file:// URLs - always use API endpoint
@@ -178,11 +178,18 @@ export default function AgreementPage() {
       {/* Main Area */}
       <div className="flex flex-1 flex-col min-w-0">
         {/* Header */}
-        <div className="flex h-10 items-center border-b border-[#2d2d2d] bg-[#181818] px-4 shrink-0">
-          <span className="text-sm font-semibold">{agreement.name} - AI Agreement Drafting</span>
-          <span className="ml-4 text-xs px-2 py-0.5 rounded bg-[#3c3c3c] uppercase text-[#cccccc]">
-            {agreement.status}
-          </span>
+        <div className="flex h-12 items-center justify-between border-b border-[#2d2d2d] bg-[#181818]/80 backdrop-blur-md px-6 shrink-0 z-10">
+          <div className="flex items-center gap-3">
+            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-sm font-medium tracking-tight text-[#e1e1e1]">{agreement.name}</span>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#3c3c3c] uppercase text-[#cccccc] font-bold tracking-wider border border-[#4d4d4d]">
+              {agreement.status}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 text-[10px] text-[#858585] uppercase font-bold tracking-widest">
+            <Bot className="w-3 h-3" />
+            AI-Assisted Drafting Mode
+          </div>
         </div>
 
         <div className="flex flex-1 overflow-hidden">
@@ -194,7 +201,6 @@ export default function AgreementPage() {
                 src={safePdfUrl}
                 className="w-full h-full border-0 bg-white"
                 title="PDF Template"
-                sandbox="allow-same-origin allow-scripts"
                 onError={(e) => {
                   console.error('PDF iframe error:', e);
                   (e.target as HTMLIFrameElement).src = 'about:blank';
@@ -207,17 +213,26 @@ export default function AgreementPage() {
           <div className="w-[450px] flex flex-col bg-[#1e1e1e] shrink-0">
             {/* Chat Section */}
             <div className="flex flex-col h-1/2 border-b border-[#2d2d2d]">
-              <div className="px-4 py-2 border-b border-[#2d2d2d] bg-[#181818] flex items-center gap-2 shrink-0">
-                <Sparkles className="w-4 h-4 text-[#0e639c]" />
-                <h3 className="text-xs uppercase text-[#858585] font-semibold">AI Drafter</h3>
+              <div className="px-4 py-2.5 border-b border-[#2d2d2d] bg-[#181818]/50 flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 bg-[#0e639c]/10 flex items-center justify-center rounded">
+                    <Sparkles className="w-3.5 h-3.5 text-[#0e639c]" />
+                  </div>
+                  <h3 className="text-[10px] uppercase text-[#858585] font-bold tracking-widest">AI Drafter</h3>
+                </div>
+                <div className="flex gap-1">
+                   <div className="w-1 h-1 rounded-full bg-[#0e639c]/40" />
+                   <div className="w-1 h-1 rounded-full bg-[#0e639c]/40" />
+                   <div className="w-1 h-1 rounded-full bg-[#0e639c]/40" />
+                </div>
               </div>
               <div className="flex-1 overflow-y-auto p-4 space-y-4">
                 {messages.map((m, i) => (
                   <div key={i} className={cn("flex gap-3", m.role === 'user' ? 'flex-row-reverse' : '')}>
-                    <div className={cn("w-8 h-8 flex items-center justify-center shrink-0", m.role === 'user' ? 'bg-[#0e639c] text-white' : 'bg-[#37373d] text-[#cccccc]')}>
+                    <div className={cn("w-8 h-8 flex items-center justify-center shrink-0 rounded-full", m.role === 'user' ? 'bg-[#0e639c] text-white shadow-lg shadow-[#0e639c]/20' : 'bg-[#37373d] text-[#cccccc] border border-[#4d4d4d]')}>
                       {m.role === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
                     </div>
-                    <div className={cn("max-w-[85%] p-3 text-sm leading-relaxed", m.role === 'user' ? 'bg-[#0e639c] text-white' : 'bg-[#37373d] text-[#cccccc]')}>
+                    <div className={cn("max-w-[85%] p-3.5 text-sm leading-relaxed rounded-2xl", m.role === 'user' ? 'bg-[#0e639c] text-white rounded-tr-none' : 'bg-[#37373d] text-[#cccccc] rounded-tl-none border border-[#4d4d4d]')}>
                       {m.content}
                     </div>
                   </div>

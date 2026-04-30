@@ -21,7 +21,8 @@ import {
   User,
   Settings,
   Bell,
-  Moon
+  Moon,
+  FileSignature
 } from "lucide-react";
 import { getDashboardStats, getRecentDocuments, DashboardStats, RecentDocument } from "../features/dashboard/dashboardService";
 import { getCurrentUser, logout } from "../features/auth/authService";
@@ -310,13 +311,16 @@ export default function DashboardPage() {
                           </div>
 
                           <div className="flex items-center gap-3">
-                            {doc.risk !== null && (
-                              <span className={cn("text-xs font-medium px-2 py-0.5", getRiskTextColor(doc.risk))}>
-                                {doc.risk}
+                            <div className={cn("text-[10px] px-2 py-0.5 border flex items-center gap-1.5 transition-all duration-500", 
+                              doc.risk !== null ? getRiskBgColor(doc.risk) : "bg-[var(--vscode-input)] border-[var(--vscode-border)] text-[var(--vscode-text-muted)]"
+                            )}>
+                              <Shield className="w-2.5 h-2.5" />
+                              <span>
+                                {doc.risk !== null ? `${doc.risk}%` : (doc.status === 'Analyzed' ? 'No Risk' : 'Pending')}
                               </span>
-                            )}
+                            </div>
                             
-                            <span className={cn("text-xs px-2 py-0.5 border", 
+                            <span className={cn("text-[10px] px-2 py-0.5 border transition-all duration-500", 
                               doc.status === "Analyzed" ? "text-[#89d185] border-[#89d185]/30" :
                               doc.status === "Pending" ? "text-[#cca700] border-[#cca700]/30" :
                               "text-[var(--vscode-text-muted)] border-[var(--vscode-border)]"
@@ -334,15 +338,47 @@ export default function DashboardPage() {
                   )}
                 </div>
 
-                {/* Quick Action */}
-                <div className="mt-8">
-                  <Link 
-                    href="/upload"
-                    className="inline-flex items-center gap-3 px-6 py-3 bg-[var(--vscode-accent)] text-white hover:bg-[var(--vscode-accent-hover)] transition-all"
-                  >
-                    <Plus className="w-5 h-5" />
-                    <span className="font-medium">Upload New Document</span>
-                  </Link>
+                {/* AI Drafting & Actions Section */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+                  <div className="bg-[var(--vscode-sidebar)] border border-[var(--vscode-border)] p-8 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                      <FileSignature className="w-32 h-32 text-[var(--vscode-accent)]" />
+                    </div>
+                    <div className="relative z-10">
+                      <h2 className="text-2xl font-light text-[var(--vscode-text)] mb-2">AI Agreement Drafting</h2>
+                      <p className="text-[var(--vscode-text-muted)] text-sm mb-6 max-w-md">
+                        Upload an AcroForm PDF to begin AI-assisted drafting, manual edits, and automatic PDF injection.
+                      </p>
+                      <Link 
+                        href="/agreement/upload"
+                        className="inline-flex items-center gap-3 px-6 py-3 bg-[var(--vscode-accent)] text-white hover:bg-[var(--vscode-accent-hover)] transition-all shadow-lg shadow-[var(--vscode-accent)]/20"
+                      >
+                        <FileSignature className="w-5 h-5" />
+                        <span className="font-medium">Start Drafting</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </Link>
+                    </div>
+                  </div>
+
+                  <div className="bg-[var(--vscode-sidebar)] border border-[var(--vscode-border)] p-8 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                      <Plus className="w-32 h-32 text-[var(--vscode-text)]" />
+                    </div>
+                    <div className="relative z-10">
+                      <h2 className="text-2xl font-light text-[var(--vscode-text)] mb-2">Document Analysis</h2>
+                      <p className="text-[var(--vscode-text-muted)] text-sm mb-6 max-w-md">
+                        Upload existing legal documents for risk assessment, summarization, and interactive Q&A.
+                      </p>
+                      <Link 
+                        href="/upload"
+                        className="inline-flex items-center gap-3 px-6 py-3 bg-[var(--vscode-hover)] text-[var(--vscode-text)] hover:bg-[var(--vscode-input)] border border-[var(--vscode-border)] transition-all"
+                      >
+                        <Plus className="w-5 h-5" />
+                        <span className="font-medium">Upload Document</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </Link>
+                    </div>
+                  </div>
                 </div>
               </>
             )}

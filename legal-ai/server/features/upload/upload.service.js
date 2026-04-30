@@ -47,7 +47,7 @@ export const handleUpload = async (file) => {
     });
     
     // Store document for retrieval with file path
-    await Document.create({
+    const doc = await Document.create({
       documentId: documentId,
       filename: parseResult.filename,
       filePath: file.path, // Store the local file path for PDF viewer
@@ -59,6 +59,17 @@ export const handleUpload = async (file) => {
         isScanned: parseResult.document_type === 'scanned' || parseResult.is_scanned || false,
         parsedAt: new Date()
       }
+    });
+
+    // Trigger risk analysis in background for efficiency
+    import('../../core/services/pythonClient.js').then(({ callRisk }) => {
+      callRisk(documentId).then(riskResult => {
+        if (riskResult && riskResult.risk_score !== undefined) {
+          doc.riskScore = riskResult.risk_score;
+          doc.save();
+          console.log(`[Upload] Background risk analysis complete for ${documentId}: ${riskResult.risk_score}`);
+        }
+      }).catch(err => console.error(`[Upload] Background risk analysis failed for ${documentId}:`, err.message));
     });
     
     return {
