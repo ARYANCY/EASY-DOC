@@ -51,7 +51,14 @@ app.include_router(agreement_route.router, prefix="/agreement", tags=["agreement
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy", "service": "nlp-service"}
+    from app.db.connection import health_check as db_health
+    db_status = await db_health()
+    return {
+        "status": "healthy",
+        "service": "nlp-service",
+        "database": "connected" if db_status else "disconnected",
+        "mode": "full" if db_status else "limited"
+    }
 
 
 if __name__ == "__main__":

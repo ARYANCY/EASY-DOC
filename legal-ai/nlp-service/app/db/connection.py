@@ -9,7 +9,7 @@ client: AsyncIOMotorClient = None
 
 
 async def connect_db():
-    """Connect to MongoDB with connection pooling."""
+    """Connect to MongoDB with connection pooling - optional."""
     global client
     try:
         client = AsyncIOMotorClient(
@@ -24,8 +24,9 @@ async def connect_db():
         await client.admin.command('ping')
         logger.info("Connected to MongoDB")
     except Exception as e:
-        logger.error(f"Failed to connect to MongoDB: {e}")
-        raise
+        logger.warning(f"MongoDB not available: {e}")
+        logger.warning("Running in limited mode without database persistence")
+        client = None  # Continue without DB
 
 
 async def close_db():
@@ -37,9 +38,9 @@ async def close_db():
 
 
 def get_db():
-    """Get database instance."""
+    """Get database instance - may return None if DB not connected."""
     if client is None:
-        raise RuntimeError("Database not connected. Call connect_db() first.")
+        return None
     return client.legal_ai
 
 
