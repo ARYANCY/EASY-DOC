@@ -136,7 +136,10 @@ export default function AgreementPage() {
 
   const handleDownload = () => {
     if (!agreement) return;
-    const downloadUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/agreement/${agreement.agreementId}/download`;
+    // Use API base URL and append the endpoint path
+    // The base URL from axiosInstance already includes /api, so we just add the path
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+    const downloadUrl = `${baseUrl}/agreement/${agreement.agreementId}/download`;
     window.open(downloadUrl, '_blank');
   };
 
