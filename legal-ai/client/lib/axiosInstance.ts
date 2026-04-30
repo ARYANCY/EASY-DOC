@@ -2,7 +2,7 @@ import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig, AxiosResp
 
 const api: AxiosInstance = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api',
-  timeout: 15000, // 15s - fast feedback; long ops use async polling
+  timeout: 60000, // 60s - PDF parsing and AI operations take longer
   headers: {
     'Content-Type': 'application/json',
   },

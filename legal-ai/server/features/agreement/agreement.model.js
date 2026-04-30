@@ -12,6 +12,7 @@ const agreementSchema = new mongoose.Schema({
   name: { type: String, required: true },
   templateUrl: { type: String, default: '' }, // path to the original uploaded template
   pdfUrl: { type: String, default: '' }, // path to the generated/injected PDF
+  parsedContent: { type: String, default: '' }, // extracted text from PDF for AI context
   versions: [versionSchema],
   currentVersion: { type: Number, default: 0 },
   status: { type: String, enum: ['draft', 'approved', 'injected'], default: 'draft' },

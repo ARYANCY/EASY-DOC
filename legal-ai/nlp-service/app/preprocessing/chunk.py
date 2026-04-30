@@ -63,9 +63,16 @@ def chunk_text_semantic(text: str, max_chunk_size: int = 1500, min_chunk_size: i
     """
     Semantic chunking that respects legal document structure.
     Preserves sections, articles, and clauses together when possible.
+    Memory-efficient for large documents.
     """
     if not text:
         return []
+    
+    # Safety: Limit maximum text size to prevent memory errors (10MB limit)
+    MAX_TEXT_SIZE = 10 * 1024 * 1024  # 10MB
+    if len(text) > MAX_TEXT_SIZE:
+        print(f"[Chunk] Warning: Text too large ({len(text)} chars), truncating to {MAX_TEXT_SIZE}")
+        text = text[:MAX_TEXT_SIZE]
     
     # First try to split by major sections
     sections = _split_by_sections(text)
@@ -76,6 +83,19 @@ def chunk_text_semantic(text: str, max_chunk_size: int = 1500, min_chunk_size: i
     
     for section in sections:
         section_len = len(section)
+        
+        # If section is extremely large, pre-split it
+        if section_len > max_chunk_size * 2:
+            # Process large sections in smaller pieces to avoid memory issues
+            sub_chunks = chunk_text(section, max_chunk_size, 200)
+            # Flush current chunk first
+            if current_chunk:
+                chunks.append('\n\n'.join(current_chunk))
+                current_chunk = []
+                current_size = 0
+            # Add all sub-chunks
+            chunks.extend(sub_chunks)
+            continue
         
         # If section fits in current chunk
         if current_size + section_len <= max_chunk_size:
@@ -91,10 +111,17 @@ def chunk_text_semantic(text: str, max_chunk_size: int = 1500, min_chunk_size: i
                 # Split the section further
                 if current_chunk:
                     chunks.append('\n\n'.join(current_chunk))
+                    current_chunk = []
+                    current_size = 0
+                
+                # Process section in smaller chunks
                 sub_chunks = chunk_text(section, max_chunk_size, 200)
-                chunks.extend(sub_chunks[:-1] if len(sub_chunks) > 1 else sub_chunks)
-                current_chunk = [sub_chunks[-1]] if len(sub_chunks) > 1 else []
-                current_size = len(current_chunk[0]) if current_chunk else 0
+                if sub_chunks:
+                    # Add all but last to chunks
+                    chunks.extend(sub_chunks[:-1])
+                    # Keep last as start of new current_chunk
+                    current_chunk = [sub_chunks[-1]]
+                    current_size = len(sub_chunks[-1])
     
     # Add remaining content
     if current_chunk:

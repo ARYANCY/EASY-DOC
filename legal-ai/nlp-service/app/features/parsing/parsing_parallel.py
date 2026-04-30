@@ -93,9 +93,15 @@ async def parse_document_parallel(content: bytes, filename: str) -> Dict[str, An
         else:
             parsed = await extract_ocr_parallel(content, filename)
         
-        # Parallel text enhancement and chunking
-        enhanced_text = await enhance_text_parallel(parsed.text) if parsed.text else ""
-        semantic_chunks = await chunk_text_parallel(enhanced_text) if enhanced_text else []
+        # Parallel text enhancement and chunking (with memory protection)
+        try:
+            enhanced_text = await enhance_text_parallel(parsed.text) if parsed.text else ""
+            semantic_chunks = await chunk_text_parallel(enhanced_text) if enhanced_text else []
+        except MemoryError as me:
+            logger.error(f"MemoryError during text processing: {me}")
+            # Use original text without enhancement
+            enhanced_text = parsed.text if parsed.text else ""
+            semantic_chunks = []  # Skip chunking to save memory
         
         elapsed = time.time() - start_time
         logger.info(f"Parallel parse completed in {elapsed:.2f}s for {filename}")
@@ -400,12 +406,47 @@ async def enhance_text_parallel(text: str) -> str:
 
 
 async def chunk_text_parallel(text: str) -> List[str]:
-    """Parallel semantic chunking with batch processing."""
-    def _chunk():
-        return chunk_text_semantic(text)
-    
+    """Parallel semantic chunking with batch processing and memory safety."""
     if not text:
         return []
+    
+    # For very large text, use simple chunking to avoid memory issues
+    if len(text) > 5 * 1024 * 1024:  # 5MB
+        logger.warning(f"Large text detected ({len(text)} chars), using simple chunking")
+        def _simple_chunk():
+            # Simple fixed-size chunking without semantic analysis
+            chunk_size = 1500
+            overlap = 200
+            chunks = []
+            start = 0
+            while start < len(text):
+                end = min(start + chunk_size, len(text))
+                chunk = text[start:end].strip()
+                if chunk:
+                    chunks.append(chunk)
+                start = end - overlap if end < len(text) else end
+            return chunks
+        
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(_thread_executor, _simple_chunk)
+    
+    def _chunk():
+        try:
+            return chunk_text_semantic(text)
+        except MemoryError:
+            logger.error("MemoryError in semantic chunking, falling back to simple chunking")
+            # Fallback to simple chunking
+            chunk_size = 1500
+            overlap = 200
+            chunks = []
+            start = 0
+            while start < len(text):
+                end = min(start + chunk_size, len(text))
+                chunk = text[start:end].strip()
+                if chunk:
+                    chunks.append(chunk)
+                start = end - overlap if end < len(text) else end
+            return chunks
     
     loop = asyncio.get_event_loop()
     return await loop.run_in_executor(_thread_executor, _chunk)

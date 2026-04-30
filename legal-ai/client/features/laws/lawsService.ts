@@ -25,8 +25,6 @@ export const analyzeLaws = async (documentId: string, text?: string, jurisdictio
   try {
     console.log('[LawsService] Starting law analysis for document:', documentId);
     
-    // Increase timeout for law analysis (40s) since it involves LLM processing
-    // Note: The axios interceptor returns response.data directly, so 'data' is the actual response body
     const data = await api.post('/laws/analyze', {
       documentId,
       text,

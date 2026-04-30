@@ -156,7 +156,11 @@ export default function AgreementPage() {
   }
 
   // Fetch the PDF file via the new API endpoint
-  const pdfUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/agreement/${agreement.agreementId}/file`;
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+  const pdfUrl = `${baseUrl}/agreement/${agreement.agreementId}/file`;
+  
+  // Security: Never use file:// URLs - always use API endpoint
+  const safePdfUrl = pdfUrl.startsWith('http') ? pdfUrl : `${baseUrl}/agreement/${agreement.agreementId}/file`;
 
   return (
     <div className="flex h-screen bg-[#1e1e1e] text-[#d4d4d4] overflow-hidden">
@@ -187,9 +191,14 @@ export default function AgreementPage() {
             <h3 className="text-xs uppercase text-[#858585] mb-2 font-semibold">Template Preview</h3>
             <div className="flex-1 bg-white rounded overflow-hidden">
               <iframe
-                src={pdfUrl}
+                src={safePdfUrl}
                 className="w-full h-full border-0 bg-white"
                 title="PDF Template"
+                sandbox="allow-same-origin allow-scripts"
+                onError={(e) => {
+                  console.error('PDF iframe error:', e);
+                  (e.target as HTMLIFrameElement).src = 'about:blank';
+                }}
               />
             </div>
           </div>
