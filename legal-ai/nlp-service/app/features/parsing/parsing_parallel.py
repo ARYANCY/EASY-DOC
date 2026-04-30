@@ -11,6 +11,9 @@ Optimized for multi-core performance with:
 import io
 import asyncio
 import logging
+import time
+import os
+import fitz
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 from dataclasses import dataclass
 from typing import Dict, Any, List, Optional, Tuple, Callable
@@ -45,7 +48,54 @@ class DocumentType(Enum):
     DIGITAL = "digital"
     SCANNED = "scanned"
     MIXED = "mixed"
+    
+def group_words_into_lines(words: List[Dict], tolerance: int = 3) -> List[Dict]:
+    if not words:
+        return []
+    # Sort by top coordinate
+    words.sort(key=lambda x: x['top'])
+    lines = []
+    current_line = [words[0]]
+    for i in range(1, len(words)):
+        if abs(words[i]['top'] - current_line[-1]['top']) <= tolerance:
+            current_line.append(words[i])
+        else:
+            lines.append(current_line)
+            current_line = [words[i]]
+    lines.append(current_line)
+    
+    merged_blocks = []
+    for line in lines:
+        line.sort(key=lambda x: x['x0'])
+        text = " ".join([w['text'] for w in line])
+        x0 = min([w['x0'] for w in line])
+        top = min([w['top'] for w in line])
+        x1 = max([w['x1'] for w in line])
+        bottom = max([w['bottom'] for w in line])
+        font_size = sum([w.get('size', 10) for w in line]) / len(line)
+        font_name = line[0].get('fontname', 'unknown')
+        
+        merged_blocks.append({
+            "text": text,
+            "x": float(x0),
+            "y": float(top),
+            "width": float(x1 - x0),
+            "height": float(bottom - top),
+            "font_size": float(font_size),
+            "font_name": font_name
+        })
+    return merged_blocks
 
+
+@dataclass
+class TextBlock:
+    text: str
+    x: float
+    y: float
+    width: float
+    height: float
+    font_size: float
+    font_name: str
 
 @dataclass
 class PageInfo:
@@ -53,6 +103,7 @@ class PageInfo:
     text: str
     has_images: bool
     confidence: float
+    blocks: List[TextBlock] = None
 
 
 @dataclass
@@ -119,7 +170,26 @@ async def parse_document_parallel(content: bytes, filename: str) -> Dict[str, An
                 "parse_time_seconds": elapsed,
                 "parallel_processing": True
             },
-            "parse_time": elapsed
+            "parse_time": elapsed,
+            "pages": [
+                {
+                    "page_num": p.page_num,
+                    "text": p.text,
+                    "has_images": p.has_images,
+                    "confidence": p.confidence,
+                    "blocks": [
+                        {
+                            "text": b.text,
+                            "x": b.x,
+                            "y": b.y,
+                            "width": b.width,
+                            "height": b.height,
+                            "font_size": b.font_size,
+                            "font_name": b.font_name
+                        } for b in (p.blocks or [])
+                    ]
+                } for p in (parsed.pages or [])
+            ] if parsed else []
         }
         
     except Exception as e:
@@ -132,34 +202,35 @@ async def detect_document_type_fast(content: bytes) -> Tuple[DocumentType, float
     """Fast document type detection by sampling first 3 pages."""
     def _analyze():
         try:
-            with pdfplumber.open(io.BytesIO(content)) as pdf:
-                total_pages = len(pdf.pages)
-                sample_size = min(3, total_pages)
-                
-                text_scores = []
-                image_scores = []
-                
-                for i in range(sample_size):
-                    try:
-                        page = pdf.pages[i]
-                        text = page.extract_text() or ""
-                        text_scores.append(1.0 if len(text.strip()) > 50 else 0.0)
-                        
-                        images = page.images
-                        image_scores.append(1.0 if len(images) > 0 else 0.0)
-                    except:
-                        text_scores.append(0)
-                        image_scores.append(0)
-                
-                avg_text = sum(text_scores) / len(text_scores) if text_scores else 0
-                avg_image = sum(image_scores) / len(image_scores) if image_scores else 0
-                
-                if avg_text > 0.8 and avg_image < 0.3:
-                    return DocumentType.DIGITAL, avg_text
-                elif avg_text < 0.2 and avg_image > 0.5:
-                    return DocumentType.SCANNED, 1 - avg_text
-                else:
-                    return DocumentType.MIXED, 0.5
+            doc = fitz.open(stream=content, filetype="pdf")
+            total_pages = doc.page_count
+            sample_size = min(3, total_pages)
+            
+            text_scores = []
+            image_scores = []
+            
+            for i in range(sample_size):
+                try:
+                    page = doc[i]
+                    text = page.get_text("text") or ""
+                    text_scores.append(1.0 if len(text.strip()) > 50 else 0.0)
+                    
+                    images = page.get_images()
+                    image_scores.append(1.0 if len(images) > 0 else 0.0)
+                except:
+                    text_scores.append(0)
+                    image_scores.append(0)
+            
+            doc.close()
+            avg_text = sum(text_scores) / len(text_scores) if text_scores else 0
+            avg_image = sum(image_scores) / len(image_scores) if image_scores else 0
+            
+            if avg_text > 0.8 and avg_image < 0.3:
+                return DocumentType.DIGITAL, avg_text
+            elif avg_text < 0.2 and avg_image > 0.5:
+                return DocumentType.SCANNED, 1 - avg_text
+            else:
+                return DocumentType.MIXED, 0.5
         except Exception as e:
             logger.warning(f"Fast type detection failed: {e}")
             return DocumentType.DIGITAL, 0.5
@@ -173,48 +244,54 @@ async def extract_digital_parallel(content: bytes, filename: str) -> ParsedDocum
     Extract text from digital PDFs using parallel page processing.
     """
     def extract_page_batch(pdf_bytes: bytes, page_nums: List[int]) -> List[Tuple[int, str, Dict]]:
-        """Extract a batch of pages."""
+        """Extract a batch of pages using PyMuPDF (fitz)."""
         results = []
         try:
-            with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
-                for page_num in page_nums:
-                    try:
-                        page = pdf.pages[page_num - 1]  # 0-indexed
-                        text = page.extract_text(layout=True) or ""
-                        
-                        # Extract tables
-                        tables = []
-                        try:
-                            for table in page.extract_tables() or []:
-                                table_text = " | ".join([str(cell or "") for cell in table[0]]) if table else ""
-                                tables.append(table_text)
-                        except:
-                            pass
-                        
-                        # Check for images
-                        has_images = False
-                        try:
-                            has_images = len(page.images) > 0
-                        except:
-                            pass
-                        
-                        page_data = {
-                            "tables": tables,
-                            "has_images": has_images,
-                            "links": []
-                        }
-                        results.append((page_num, text, page_data))
-                    except Exception as e:
-                        logger.warning(f"Failed to extract page {page_num}: {e}")
-                        results.append((page_num, "", {"error": str(e)}))
+            doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+            for page_num in page_nums:
+                try:
+                    page = doc[page_num - 1]
+                    text = page.get_text("text") or ""
+                    
+                    blocks = []
+                    page_dict = page.get_text("dict")
+                    for b in page_dict.get("blocks", []):
+                        if b["type"] == 0: # Text block
+                            for l in b["lines"]:
+                                line_text = "".join([s["text"] for s in l["spans"]])
+                                x0, y0, x1, y1 = l["bbox"]
+                                if line_text.strip():
+                                    blocks.append({
+                                        "text": line_text,
+                                        "x": float(x0),
+                                        "y": float(y0),
+                                        "width": float(x1 - x0),
+                                        "height": float(y1 - y0),
+                                        "font_size": l["spans"][0]["size"] if l["spans"] else 10.0,
+                                        "font_name": l["spans"][0]["font"] if l["spans"] else "unknown"
+                                    })
+
+                    page_data = {
+                        "tables": [],
+                        "has_images": len(page.get_images()) > 0,
+                        "links": [],
+                        "blocks": blocks
+                    }
+                    results.append((page_num, text, page_data))
+                except Exception as e:
+                    logger.warning(f"Batch page {page_num} failed: {e}")
+                    results.append((page_num, "", {"error": str(e)}))
+            doc.close()
         except Exception as e:
-            logger.error(f"Batch extraction failed: {e}")
+            logger.error(f"Batch processing failed: {e}")
         return results
     
     def get_total_pages():
         try:
-            with pdfplumber.open(io.BytesIO(content)) as pdf:
-                return len(pdf.pages)
+            doc = fitz.open(stream=content, filetype="pdf")
+            count = doc.page_count
+            doc.close()
+            return count
         except:
             return 0
     
@@ -254,11 +331,15 @@ async def extract_digital_parallel(content: bytes, filename: str) -> ParsedDocum
     
     for batch in batch_results:
         for page_num, text, page_data in batch:
+            # Convert blocks back to TextBlock objects
+            blocks = [TextBlock(**b) for b in page_data.get("blocks", [])]
+            
             all_pages.append(PageInfo(
                 page_num=page_num,
                 text=text,
                 has_images=page_data.get("has_images", False),
-                confidence=1.0
+                confidence=1.0,
+                blocks=blocks
             ))
             full_text_parts.append(text)
             

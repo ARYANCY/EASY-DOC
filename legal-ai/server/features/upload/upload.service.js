@@ -53,6 +53,7 @@ export const handleUpload = async (file) => {
       filePath: file.path, // Store the local file path for PDF viewer
       text: parseResult.text || '',
       chunks: parseResult.chunks || [],
+      pages: parseResult.pages || [],
       status: 'analyzed',
       metadata: {
         pageCount: parseResult.page_count || parseResult.total_pages || 0,

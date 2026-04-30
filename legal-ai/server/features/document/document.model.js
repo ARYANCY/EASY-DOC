@@ -13,6 +13,19 @@ const documentSchema = new mongoose.Schema({
     isScanned: Boolean,
     parsedAt: Date,
   },
+  pages: [{
+    page_num: Number,
+    text: String,
+    blocks: [{
+      text: String,
+      x: Number,
+      y: Number,
+      width: Number,
+      height: Number,
+      font_size: Number,
+      font_name: String
+    }]
+  }],
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });

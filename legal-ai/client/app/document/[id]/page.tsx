@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ActivityBar, BottomPanel, ExplorerPanel, RightPanel } from '../../../components/PanelController';
 import RiskPanel from '../../../components/RiskPanel';
 import ChatPanel from '../../../components/ChatPanel';
@@ -9,6 +9,13 @@ import DocumentSummary from '../../../components/DocumentSummary';
 import ClausesPanel from '../../../components/ClausesPanel';
 import ApplicableLawsPanel from '../../../components/ApplicableLawsPanel';
 import { exportToPDF } from '../../../lib/utils/exportPDF';
+import { Document as PdfDocument, Page, pdfjs } from 'react-pdf';
+import 'react-pdf/dist/Page/AnnotationLayer.css';
+import 'react-pdf/dist/Page/TextLayer.css';
+import PdfEditorOverlay from '../../../components/PdfEditorOverlay';
+
+// Configure pdfjs worker
+pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 import {
   Download,
@@ -29,6 +36,9 @@ import {
   Sparkles,
   LayoutDashboard,
   Landmark,
+  Pencil,
+  Eye,
+  Type
 } from 'lucide-react';
 import Link from 'next/link';
 import Sidebar from '../../../components/Sidebar';
@@ -98,7 +108,7 @@ export default function DocumentPage() {
   const router = useRouter();
   const documentId = params.id as string;
   
-  const [activeTab, setActiveTab] = useState<'pdf' | 'original' | 'simplified' | 'clauses' | 'laws' | 'summary'>('pdf');
+  const [activeTab, setActiveTab] = useState<'pdf' | 'original' | 'simplified' | 'clauses' | 'laws' | 'summary' | 'edit-pdf'>('pdf');
   const [loading, setLoading] = useState(true);
   const [documentData, setDocumentData] = useState<Document | null>(null);
   const [riskData, setRiskData] = useState<any>(null);
@@ -117,12 +127,95 @@ export default function DocumentPage() {
   const [showBottomPanel, setShowBottomPanel] = useState(false);
   const [bottomTab, setBottomTab] = useState<'risk' | 'actions' | 'clauses'>('risk');
   const [errors, setErrors] = useState<string[]>([]);
+  const [bottomPanelHeight, setBottomPanelHeight] = useState(240);
+  const [isResizing, setIsResizing] = useState(false);
+  const [rightPanelWidth, setRightPanelWidth] = useState(360);
+  const [isResizingRight, setIsResizingRight] = useState(false);
+  
+  // Resizing logic for bottom panel
+  const startResizing = useCallback(() => {
+    setIsResizing(true);
+    document.body.style.cursor = 'ns-resize';
+    document.body.style.userSelect = 'none';
+  }, []);
+
+  const stopResizing = useCallback(() => {
+    setIsResizing(false);
+    document.body.style.cursor = 'default';
+    document.body.style.userSelect = 'auto';
+  }, []);
+
+  const resize = useCallback((e: MouseEvent) => {
+    if (isResizing) {
+      const newHeight = window.innerHeight - e.clientY;
+      if (newHeight > 100 && newHeight < window.innerHeight * 0.7) {
+        setBottomPanelHeight(newHeight);
+      }
+    }
+  }, [isResizing]);
+
+  useEffect(() => {
+    if (isResizing) {
+      window.addEventListener('mousemove', resize);
+      window.addEventListener('mouseup', stopResizing);
+    } else {
+      window.removeEventListener('mousemove', resize);
+      window.removeEventListener('mouseup', stopResizing);
+    }
+    return () => {
+      window.removeEventListener('mousemove', resize);
+      window.removeEventListener('mouseup', stopResizing);
+    };
+  }, [isResizing, resize, stopResizing]);
+
+  // Resizing logic for right panel
+  const startResizingRight = useCallback(() => {
+    setIsResizingRight(true);
+    document.body.style.cursor = 'ew-resize';
+    document.body.style.userSelect = 'none';
+  }, []);
+
+  const stopResizingRight = useCallback(() => {
+    setIsResizingRight(false);
+    document.body.style.cursor = 'default';
+    document.body.style.userSelect = 'auto';
+  }, []);
+
+  const resizeRight = useCallback((e: MouseEvent) => {
+    if (isResizingRight) {
+      const newWidth = window.innerWidth - e.clientX;
+      if (newWidth > 200 && newWidth < window.innerWidth * 0.5) {
+        setRightPanelWidth(newWidth);
+      }
+    }
+  }, [isResizingRight]);
+
+  useEffect(() => {
+    if (isResizingRight) {
+      window.addEventListener('mousemove', resizeRight);
+      window.addEventListener('mouseup', stopResizingRight);
+    } else {
+      window.removeEventListener('mousemove', resizeRight);
+      window.removeEventListener('mouseup', stopResizingRight);
+    }
+    return () => {
+      window.removeEventListener('mousemove', resizeRight);
+      window.removeEventListener('mouseup', stopResizingRight);
+    };
+  }, [isResizingRight, resizeRight, stopResizingRight]);
 
   // NEW: Document view modes and search state - MOVED HERE to fix hooks error
   const [viewMode, setViewMode] = useState<'pdf' | 'parsed'>('pdf');
   const [searchQuery, setSearchQuery] = useState('');
   const [highlightedRanges, setHighlightedRanges] = useState<Array<{start: number, end: number}>>([]);
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
+  
+  // NEW: Structured data for editing
+  const [structuredPages, setStructuredPages] = useState<any[]>([]);
+  const [reconstructedHtml, setReconstructedHtml] = useState<string>('');
+  const [scale, setScale] = useState(1.5);
+  const [numPages, setNumPages] = useState<number | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     const currentUser = getCurrentUser();
@@ -234,6 +327,19 @@ export default function DocumentPage() {
     };
   }, [pdfBlobUrl]);
 
+  // Fetch structured pages for editing
+  useEffect(() => {
+    if (activeTab === 'edit-pdf' && documentId && structuredPages.length === 0) {
+      import('../../../lib/axiosInstance').then(({ default: api }) => {
+        api.get(`/pdf/parse/${documentId}`)
+          .then((res: any) => {
+            if (res.pages) setStructuredPages(res.pages);
+          })
+          .catch(err => console.error('Error fetching structured pages:', err));
+      });
+    }
+  }, [activeTab, documentId, structuredPages.length]);
+
   if (!user || !features) return null;
 
   // Feature flags
@@ -252,6 +358,41 @@ export default function DocumentPage() {
       riskFlags: riskData?.flags || sampleRiskFlags,
       clauses: clausesData.length > 0 ? clausesData.map((c: any) => ({ title: c.title, description: c.description })) : sampleClauses.map(c => ({ title: c.title, description: c.description })),
     });
+  };
+
+  const handleAIEnhance = async () => {
+    if (!reconstructedHtml) return;
+    setLoading(true);
+    try {
+      const { api } = await import('../../../lib/axiosInstance');
+      const res: any = await api.post('/pdf/ai-process', { text: reconstructedHtml, type: 'simplify' });
+      if (res.simplified) setReconstructedHtml(res.simplified);
+    } catch (err) {
+      console.error('AI process failed:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleExportReconstructed = async () => {
+    if (!reconstructedHtml) return;
+    try {
+      const { api } = await import('../../../lib/axiosInstance');
+      const response: any = await api.post('/pdf/export', { 
+        html: reconstructedHtml,
+        filename: `Edited_${documentData?.filename || 'document.pdf'}`
+      }, { responseType: 'blob' });
+      
+      const url = window.URL.createObjectURL(new Blob([response]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `Edited_${documentData?.filename || 'document.pdf'}`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      console.error('Export failed:', err);
+    }
   };
 
   // NEW: Search and highlight function with lime green
@@ -472,22 +613,27 @@ export default function DocumentPage() {
               {/* Left: Tabs */}
               <div className="flex overflow-x-auto">
                 {[
-                  { id: 'pdf', label: 'PDF View', enabled: true },
-                  { id: 'original', label: 'Parsed Text', enabled: true },
-                  { id: 'simplified', label: 'Simplified', enabled: true },
-                  { id: 'clauses', label: 'Clauses', enabled: clauseExtractionEnabled },
-                  { id: 'laws', label: 'Laws', enabled: true },
-                  { id: 'summary', label: 'Summary', enabled: documentSummaryEnabled },
+                  { id: 'pdf', label: 'View', icon: <Eye className="h-3.5 w-3.5" />, enabled: true },
+                  { id: 'edit-pdf', label: 'Edit PDF', icon: <Pencil className="h-3.5 w-3.5" />, enabled: true, highlight: true },
+                  { id: 'original', label: 'Parsed Text', icon: <FileText className="h-3.5 w-3.5" />, enabled: true },
+                  { id: 'simplified', label: 'Simplified', icon: <Scissors className="h-3.5 w-3.5" />, enabled: true },
+                  { id: 'clauses', label: 'Clauses', icon: <Code className="h-3.5 w-3.5" />, enabled: clauseExtractionEnabled },
+                  { id: 'laws', label: 'Laws', icon: <Landmark className="h-3.5 w-3.5" />, enabled: true },
+                  { id: 'summary', label: 'Summary', icon: <LayoutDashboard className="h-3.5 w-3.5" />, enabled: documentSummaryEnabled },
                 ].filter(tab => tab.enabled).map((tab) => (
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id as any)}
-                    className={`flex min-w-[100px] items-center gap-2 border-r border-[#2d2d2d] px-3 text-left text-xs ${
-                      activeTab === tab.id ? 'bg-[#1e1e1e] text-white' : 'bg-[#2d2d2d] text-[#cccccc] hover:bg-[#333333]'
+                    className={`flex min-w-[100px] items-center gap-2 border-r border-[#2d2d2d] px-3 text-left text-xs transition-colors ${
+                      activeTab === tab.id 
+                        ? 'bg-[#1e1e1e] text-white border-t-2 border-t-blue-500' 
+                        : tab.highlight 
+                          ? 'bg-[#2d2d2d] text-blue-400 hover:bg-[#333333]' 
+                          : 'bg-[#2d2d2d] text-[#cccccc] hover:bg-[#333333]'
                     }`}
                   >
-                    <FileText className="h-3.5 w-3.5 text-[#c586c0]" />
-                    <span className="truncate">{tab.label}</span>
+                    <span className={activeTab === tab.id ? 'text-blue-400' : ''}>{tab.icon}</span>
+                    <span className="truncate font-medium">{tab.label}</span>
                   </button>
                 ))}
               </div>
@@ -525,7 +671,17 @@ export default function DocumentPage() {
             <div className="min-h-0 flex-1 overflow-auto bg-[#1e1e1e]">
               {/* PDF Viewer */}
               {activeTab === 'pdf' && (
-                <div className="h-full w-full">
+                <div className="h-full w-full relative">
+                  {pdfBlobUrl && (
+                    <div className="absolute top-4 right-4 z-10">
+                       <button 
+                         onClick={() => setActiveTab('edit-pdf')}
+                         className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md shadow-lg text-sm font-medium transition-all transform hover:scale-105"
+                       >
+                         <Pencil className="w-4 h-4" /> Enable PDF Editing
+                       </button>
+                    </div>
+                  )}
                   {pdfBlobUrl ? (
                     <iframe
                       src={pdfBlobUrl}
@@ -540,6 +696,97 @@ export default function DocumentPage() {
                 </div>
               )}
               
+              {/* PDF Editor (Overlay) */}
+              {activeTab === 'edit-pdf' && (
+                <div className="flex flex-col items-center p-8 bg-[#333333] min-h-full">
+                  <div className="flex items-center gap-4 mb-4 bg-[#252526] p-2 rounded border border-[#3c3c3c]">
+                    <button onClick={() => setScale(s => Math.max(0.5, s - 0.1))} className="p-1 hover:bg-[#3c3c3c] text-white">-</button>
+                    <span className="text-xs text-white">{Math.round(scale * 100)}%</span>
+                    <button onClick={() => setScale(s => Math.min(3, s + 0.1))} className="p-1 hover:bg-[#3c3c3c] text-white">+</button>
+                    <div className="w-px h-4 bg-[#3c3c3c] mx-2" />
+                    <button 
+                      onClick={() => {
+                        // Save edits to backend
+                        const edits = structuredPages.flatMap((p: any) => 
+                          (p.blocks || []).filter((b: any) => b.editedText).map((b: any) => ({
+                            page: p.page_num,
+                            x: b.x,
+                            y: b.y,
+                            originalText: b.text,
+                            editedText: b.editedText
+                          }))
+                        );
+                        if (edits.length > 0) {
+                          import('../../../lib/axiosInstance').then(({ default: api }) => {
+                             api.post('/pdf/save-edits', { documentId, edits }).then(() => {
+                               alert('Edits saved successfully!');
+                             });
+                          });
+                        }
+                      }}
+                      className="bg-[#0e639c] px-3 py-1 text-xs text-white hover:bg-[#1177bb] flex items-center gap-2"
+                    >
+                      <Download className="h-3 w-3" /> Save Changes
+                    </button>
+                    <div className="w-px h-4 bg-[#3c3c3c] mx-2" />
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage <= 1}
+                        className="p-1 text-white disabled:opacity-30"
+                      >
+                        Previous
+                      </button>
+                      <span className="text-xs text-white">Page {currentPage} of {numPages || '?'}</span>
+                      <button 
+                        onClick={() => setCurrentPage(p => Math.min(numPages || 1, p + 1))}
+                        disabled={currentPage >= (numPages || 1)}
+                        className="p-1 text-white disabled:opacity-30"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+
+                  {pdfBlobUrl ? (
+                    <div className="relative shadow-2xl bg-white">
+                      <PdfDocument
+                        file={pdfBlobUrl}
+                        onLoadSuccess={({ numPages }) => setNumPages(numPages)}
+                        loading={<Loader2 className="w-8 h-8 animate-spin text-[#858585]" />}
+                      >
+                        <div className="relative mb-8 last:mb-0 border border-gray-300">
+                          <Page 
+                            pageNumber={currentPage} 
+                            scale={scale} 
+                            renderTextLayer={false}
+                            renderAnnotationLayer={false}
+                          />
+                          <PdfEditorOverlay
+                            blocks={structuredPages.find(p => p.page_num === currentPage)?.blocks || []}
+                            scale={scale * 1.33} 
+                            onBlockEdit={(blockIndex, newText) => {
+                                setStructuredPages(prev => {
+                                  const next = [...prev];
+                                  const page = next.find(p => p.page_num === currentPage);
+                                  if (page && page.blocks[blockIndex]) {
+                                    page.blocks[blockIndex].editedText = newText;
+                                  }
+                                  return next;
+                                });
+                            }}
+                            containerWidth={0} 
+                            containerHeight={0}
+                          />
+                        </div>
+                      </PdfDocument>
+                    </div>
+                  ) : (
+                    <Loader2 className="w-8 h-8 animate-spin text-[#858585]" />
+                  )}
+                </div>
+              )}
+
               {/* Text View with Search Highlighting */}
               {(activeTab === 'original' || activeTab === 'simplified') && (
                 <div className="min-w-full py-4 font-mono text-sm leading-6">
@@ -576,7 +823,17 @@ export default function DocumentPage() {
             </div>
 
             {showBottomPanel && (
-              <section className="h-56 shrink-0 border-t border-[#2d2d2d] bg-[#181818] md:h-64">
+              <section 
+                style={{ height: `${bottomPanelHeight}px` }}
+                className="relative shrink-0 border-t border-[#2d2d2d] bg-[#181818]"
+              >
+                {/* Drag handle */}
+                <div 
+                  onMouseDown={startResizing}
+                  className="absolute -top-0.5 left-0 right-0 h-1 cursor-ns-resize z-50 hover:bg-blue-500/50 transition-colors group"
+                >
+                   <div className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-1 bg-transparent group-hover:bg-blue-400 rounded-full" />
+                </div>
                 <div className="flex h-9 items-center justify-between border-b border-[#2d2d2d]">
                   <div className="flex h-full">
                     {[
@@ -646,7 +903,17 @@ export default function DocumentPage() {
           </main>
 
           {chatbotEnabled && showChat && (
-            <aside className="hidden w-[360px] shrink-0 border-l border-[#2d2d2d] bg-[#252526] xl:block">
+            <aside 
+              style={{ width: `${rightPanelWidth}px` }}
+              className="relative hidden shrink-0 border-l border-[#2d2d2d] bg-[#252526] xl:block"
+            >
+              {/* Vertical Drag handle */}
+              <div 
+                onMouseDown={startResizingRight}
+                className="absolute top-0 -left-0.5 bottom-0 w-1 cursor-ew-resize z-50 hover:bg-blue-500/50 transition-colors group"
+              >
+                 <div className="absolute top-1/2 left-0 -translate-y-1/2 w-1 h-12 bg-transparent group-hover:bg-blue-400 rounded-full" />
+              </div>
               <div className="flex h-9 items-center justify-between border-b border-[#2d2d2d] px-3 text-xs uppercase tracking-wide text-[#cccccc]">
                 AI Chat
                 <button onClick={() => setShowChat(false)} className="hover:text-white">

@@ -14,6 +14,7 @@ import authRoutes from './features/auth/auth.route.js';
 import clauseRoutes from './features/clause/clause.route.js';
 import lawsRoutes from './features/laws/laws.route.js';
 import agreementRoutes from './features/agreement/agreement.route.js';
+import pdfRoutes from './features/pdf/pdf.route.js';
 
 dotenv.config();
 
@@ -52,6 +53,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/clause', clauseRoutes);
 app.use('/api/laws', lawsRoutes);
 app.use('/api/agreement', agreementRoutes);
+app.use('/api/pdf', pdfRoutes);
 
 // Error handler
 app.use((err, req, res, next) => {

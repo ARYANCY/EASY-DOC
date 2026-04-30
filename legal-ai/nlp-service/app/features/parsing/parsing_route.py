@@ -2,9 +2,12 @@ from fastapi import APIRouter, UploadFile, File, HTTPException
 from app.features.parsing.parsing_service import parse_document
 from app.features.parsing.parsing_parallel import parse_document_parallel
 from app.features.parsing.async_parsing_service import get_async_parsing_service
+from app.features.parsing.layout_service import reconstruct_html_from_blocks
 import uuid
 import os
 import logging
+from typing import Dict, Any, List
+from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -100,6 +103,20 @@ async def upload_file(file: UploadFile = File(...)):
     except Exception as e:
         logger.error(f"Upload failed for {file.filename}: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to process document: {str(e)}")
+
+
+class HTMLConvertRequest(BaseModel):
+    pages: List[Dict[str, Any]]
+
+@router.post("/convert-html")
+async def convert_pdf_to_html(request: HTMLConvertRequest):
+    """Convert structured PDF pages (with blocks) to reconstructed HTML."""
+    try:
+        html = reconstruct_html_from_blocks(request.pages)
+        return {"success": True, "html": html}
+    except Exception as e:
+        logger.error(f"HTML conversion failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to convert to HTML: {str(e)}")
 
 
 @router.post("/benchmark")

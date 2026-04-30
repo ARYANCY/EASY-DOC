@@ -70,16 +70,6 @@ export default function ChatPanel({ documentId, className }: ChatPanelProps) {
 
   return (
     <div className={cn('flex flex-col h-full bg-[var(--vscode-sidebar)] border border-[var(--vscode-border)]', className)}>
-      {/* Header */}
-      <div className="px-4 py-3 border-b border-[var(--vscode-border)] flex items-center justify-between bg-[var(--vscode-activity)]">
-        <div className="flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-[var(--vscode-accent)]" />
-          <h2 className="text-sm font-semibold text-[var(--vscode-text)]">AI Legal Assistant</h2>
-        </div>
-        <button className="text-[var(--vscode-text-muted)] hover:text-white">
-          <X className="w-4 h-4" />
-        </button>
-      </div>
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">

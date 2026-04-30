@@ -4,13 +4,14 @@ import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import { v4 as uuidv4 } from 'uuid';
 import Agreement from './agreement.model.js';
 
-export const createAgreement = async (name, templateUrl, parsedContent = '') => {
+export const createAgreement = async (name, templateUrl, parsedContent = '', pages = []) => {
   const agreementId = uuidv4();
   const agreement = new Agreement({
     agreementId,
     name,
     templateUrl,
     parsedContent, // Store parsed text for AI context
+    pages,
     versions: [{ version: 0, text: parsedContent || '', source: 'manual' }],
     currentVersion: 0
   });
@@ -22,11 +23,14 @@ export const getAgreement = async (agreementId) => {
   return Agreement.findOne({ agreementId });
 };
 
-export const updateParsedContent = async (agreementId, parsedContent) => {
+export const updateParsedContent = async (agreementId, parsedContent, pages = []) => {
   const agreement = await Agreement.findOne({ agreementId });
   if (!agreement) throw new Error('Agreement not found');
   
   agreement.parsedContent = parsedContent;
+  if (pages && pages.length > 0) {
+    agreement.pages = pages;
+  }
   
   // Also update the first version if it has empty text
   if (agreement.versions.length > 0 && !agreement.versions[0].text) {

@@ -16,6 +16,14 @@ import {
   injectPdf
 } from '../../../features/agreement/agreementService';
 import { cn } from '../../../lib/utils/cn';
+import { Document as PdfDocument, Page, pdfjs } from 'react-pdf';
+import 'react-pdf/dist/Page/AnnotationLayer.css';
+import 'react-pdf/dist/Page/TextLayer.css';
+import PdfEditorOverlay from '../../../components/PdfEditorOverlay';
+import { Pencil, Eye, ChevronRight } from 'lucide-react';
+
+// Configure pdfjs worker
+pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 export default function AgreementPage() {
   const params = useParams();
@@ -25,6 +33,10 @@ export default function AgreementPage() {
   const [agreement, setAgreement] = useState<Agreement | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+  const [pdfViewMode, setPdfViewMode] = useState<'preview' | 'edit'>('preview');
+  const [scale, setScale] = useState(1.0);
+  const [numPages, setNumPages] = useState<number | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Chat state
   const [chatInput, setChatInput] = useState('');
@@ -194,18 +206,102 @@ export default function AgreementPage() {
 
         <div className="flex flex-1 overflow-hidden">
           {/* Left: PDF Template Preview */}
-          <div className="flex-1 border-r border-[#2d2d2d] bg-[#252526] p-4 flex flex-col">
-            <h3 className="text-xs uppercase text-[#858585] mb-2 font-semibold">Template Preview</h3>
-            <div className="flex-1 bg-white rounded overflow-hidden">
-              <iframe
-                src={safePdfUrl}
-                className="w-full h-full border-0 bg-white"
-                title="PDF Template"
-                onError={(e) => {
-                  console.error('PDF iframe error:', e);
-                  (e.target as HTMLIFrameElement).src = 'about:blank';
-                }}
-              />
+          <div className="flex-1 border-r border-[#2d2d2d] bg-[#252526] p-4 flex flex-col min-w-0">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-[10px] uppercase text-[#858585] font-bold tracking-widest">Template Preview</h3>
+              <div className="flex bg-[#1e1e1e] p-0.5 rounded border border-[#333333]">
+                <button 
+                  onClick={() => setPdfViewMode('preview')}
+                  className={cn("px-3 py-1 text-[10px] rounded transition-all flex items-center gap-1.5", 
+                    pdfViewMode === 'preview' ? "bg-[#37373d] text-white shadow-sm" : "text-[#858585] hover:text-[#cccccc]")}
+                >
+                  <Eye className="w-3 h-3" /> Preview
+                </button>
+                <button 
+                  onClick={() => setPdfViewMode('edit')}
+                  className={cn("px-3 py-1 text-[10px] rounded transition-all flex items-center gap-1.5", 
+                    pdfViewMode === 'edit' ? "bg-blue-600 text-white shadow-sm" : "text-[#858585] hover:text-[#cccccc]")}
+                >
+                  <Pencil className="w-3 h-3" /> Edit PDF
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1 bg-white rounded overflow-hidden flex flex-col relative group">
+              {pdfViewMode === 'preview' ? (
+                <iframe
+                  src={safePdfUrl}
+                  className="w-full h-full border-0 bg-white"
+                  title="PDF Template"
+                  onError={(e) => {
+                    console.error('PDF iframe error:', e);
+                    (e.target as HTMLIFrameElement).src = 'about:blank';
+                  }}
+                />
+              ) : (
+                <div className="flex-1 overflow-auto bg-[#333333] flex flex-col items-center py-4">
+                   <div className="sticky top-0 z-20 flex items-center gap-4 mb-4 bg-[#252526]/90 backdrop-blur p-2 rounded border border-[#3c3c3c] shadow-xl">
+                      <button onClick={() => setScale(s => Math.max(0.5, s - 0.1))} className="w-6 h-6 flex items-center justify-center hover:bg-[#3c3c3c] text-white rounded text-xs">-</button>
+                      <span className="text-[10px] text-[#cccccc] font-bold min-w-[30px] text-center">{Math.round(scale * 100)}%</span>
+                      <button onClick={() => setScale(s => Math.min(3, s + 0.1))} className="w-6 h-6 flex items-center justify-center hover:bg-[#3c3c3c] text-white rounded text-xs">+</button>
+                      <div className="w-px h-3 bg-[#3c3c3c]" />
+                      <div className="flex items-center gap-2">
+                        <button 
+                          onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                          disabled={currentPage <= 1}
+                          className="text-[10px] text-[#cccccc] hover:text-white disabled:opacity-30"
+                        >
+                          Prev
+                        </button>
+                        <span className="text-[10px] text-white font-medium">Pg {currentPage}/{numPages || '?'}</span>
+                        <button 
+                          onClick={() => setCurrentPage(p => Math.min(numPages || 1, p + 1))}
+                          disabled={currentPage >= (numPages || 1)}
+                          className="text-[10px] text-[#cccccc] hover:text-white disabled:opacity-30"
+                        >
+                          Next
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="relative shadow-2xl bg-white border border-gray-400">
+                      <PdfDocument
+                        file={safePdfUrl}
+                        onLoadSuccess={({ numPages }) => setNumPages(numPages)}
+                        loading={<div className="p-20 text-[#858585] flex flex-col items-center gap-4">
+                          <Loader2 className="w-8 h-8 animate-spin" />
+                          <p className="text-xs uppercase tracking-widest font-bold">Rendering Document...</p>
+                        </div>}
+                      >
+                        <div className="relative">
+                          <Page 
+                            pageNumber={currentPage} 
+                            scale={scale} 
+                            renderTextLayer={false}
+                            renderAnnotationLayer={false}
+                          />
+                          <PdfEditorOverlay
+                            blocks={agreement.pages?.find(p => p.page_num === currentPage)?.blocks || []}
+                            scale={scale * 1.33} 
+                            onBlockEdit={(blockIndex, newText) => {
+                               setAgreement(prev => {
+                                 if (!prev) return null;
+                                 const next = { ...prev };
+                                 const page = next.pages?.find(p => p.page_num === currentPage);
+                                 if (page && page.blocks[blockIndex]) {
+                                   page.blocks[blockIndex].editedText = newText;
+                                 }
+                                 return next;
+                               });
+                            }}
+                            containerWidth={0} 
+                            containerHeight={0}
+                          />
+                        </div>
+                      </PdfDocument>
+                    </div>
+                </div>
+              )}
             </div>
           </div>
 

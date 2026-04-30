@@ -32,7 +32,103 @@ class DocumentType(Enum):
     DIGITAL = "digital"
     SCANNED = "scanned"
     MIXED = "mixed"
+    
+def group_words_into_lines(words: List[Dict], tolerance: int = 3) -> List[Any]:
+    if not words:
+        return []
+    # Sort by top coordinate
+    words.sort(key=lambda x: x['top'])
+    lines = []
+    current_line = [words[0]]
+    for i in range(1, len(words)):
+        if abs(words[i]['top'] - current_line[-1]['top']) <= tolerance:
+            current_line.append(words[i])
+        else:
+            lines.append(current_line)
+            current_line = [words[i]]
+    lines.append(current_line)
+    
+    # Merge words in each line
+    from app.features.parsing.parsing_service import TextBlock
+    merged_blocks = []
+    for line in lines:
+        line.sort(key=lambda x: x['x0'])
+        text = " ".join([w['text'] for w in line])
+        x0 = min([w['x0'] for w in line])
+        top = min([w['top'] for w in line])
+        x1 = max([w['x1'] for w in line])
+        bottom = max([w['bottom'] for w in line])
+        font_size = sum([w.get('size', 10) for w in line]) / len(line)
+        font_name = line[0].get('fontname', 'unknown')
+        
+        merged_blocks.append(TextBlock(
+            text=text,
+            x=float(x0),
+            y=float(top),
+            width=float(x1 - x0),
+            height=float(bottom - top),
+            font_size=float(font_size),
+            font_name=font_name
+        ))
+    return merged_blocks
 
+def extract_structured_pages_fast(file_path: str) -> List[Dict]:
+    """Uses PyMuPDF (fitz) for ultra-fast structured parsing (10-100x faster than pdfplumber)"""
+    try:
+        doc = fitz.open(file_path)
+        pages = []
+        for i, page in enumerate(doc):
+            blocks = []
+            page_dict = page.get_text("dict")
+            for b in page_dict.get("blocks", []):
+                if b["type"] == 0: # Text block
+                    for l in b["lines"]:
+                        # Merge spans in a line for efficiency
+                        line_text = ""
+                        x0, y0, x1, y1 = float('inf'), float('inf'), float('-inf'), float('-inf')
+                        max_size = 0
+                        font_name = "unknown"
+                        
+                        for s in l["spans"]:
+                            line_text += s["text"]
+                            x0 = min(x0, s["bbox"][0])
+                            y0 = min(y0, s["bbox"][1])
+                            x1 = max(x1, s["bbox"][2])
+                            y1 = max(y1, s["bbox"][3])
+                            max_size = max(max_size, s["size"])
+                            font_name = s["font"]
+                        
+                        if line_text.strip():
+                            blocks.append({
+                                "text": line_text,
+                                "x": float(x0),
+                                "y": float(y0),
+                                "width": float(x1 - x0),
+                                "height": float(y1 - y0),
+                                "font_size": float(max_size),
+                                "font_name": font_name
+                            })
+            pages.append({
+                "page_num": i + 1,
+                "text": page.get_text("text"),
+                "blocks": blocks
+            })
+        doc.close()
+        return pages
+    except Exception as e:
+        logging.error(f"PyMuPDF parsing failed: {e}")
+        return []
+
+
+@dataclass
+class TextBlock:
+    text: str
+    x: float
+    y: float
+    width: float
+    height: float
+    font_size: float
+    font_name: str
 
 @dataclass
 class PageInfo:
@@ -40,6 +136,7 @@ class PageInfo:
     text: str
     has_images: bool
     confidence: float
+    blocks: List[TextBlock] = None
 
 
 @dataclass
@@ -101,7 +198,26 @@ async def parse_document(content: bytes, filename: str) -> Dict[str, Any]:
             "chunks": semantic_chunks,
             "chunk_count": len(semantic_chunks),
             "metadata": parsed.metadata if parsed else {},
-            "page_count": len(parsed.pages) if parsed and parsed.pages else 0
+            "page_count": len(parsed.pages) if parsed and parsed.pages else 0,
+            "pages": [
+                {
+                    "page_num": p.page_num,
+                    "text": p.text,
+                    "has_images": p.has_images,
+                    "confidence": p.confidence,
+                    "blocks": [
+                        {
+                            "text": b.text,
+                            "x": b.x,
+                            "y": b.y,
+                            "width": b.width,
+                            "height": b.height,
+                            "font_size": b.font_size,
+                            "font_name": b.font_name
+                        } for b in (p.blocks or [])
+                    ]
+                } for p in (parsed.pages or [])
+            ] if parsed else []
         }
         
         logger.info(f"Successfully parsed {filename}: {len(enhanced_text)} chars, {len(semantic_chunks)} chunks")
@@ -229,96 +345,81 @@ async def extract_digital_advanced(content: bytes, filename: str) -> ParsedDocum
     Extract text from digital PDFs with layout preservation and table detection.
     """
     def _extract():
-        pages = []
-        full_text_parts = []
-        metadata = {"tables": [], "links": [], "fonts": set()}
-        
+        start_time = time.time()
         try:
-            with pdfplumber.open(io.BytesIO(content)) as pdf:
-                for i, page in enumerate(pdf.pages):
-                    try:
-                        page_text = ""
-                        
-                        # Extract text with layout
-                        try:
-                            text = page.extract_text(layout=True) or ""
-                            page_text += text
-                        except Exception as text_error:
-                            logger.warning(f"Failed to extract text from page {i+1}: {text_error}")
-                        
-                        # Extract tables
-                        try:
-                            tables = page.extract_tables()
-                            if tables:
-                                for table in tables:
-                                    try:
-                                        table_text = "\n".join([" | ".join(str(cell or "") for cell in row) for row in table])
-                                        page_text += f"\n\n[TABLE]\n{table_text}\n[/TABLE]\n"
-                                        metadata["tables"].append({"page": i + 1, "rows": len(table)})
-                                    except Exception:
-                                        pass  # Skip malformed tables
-                        except Exception as table_error:
-                            logger.warning(f"Failed to extract tables from page {i+1}: {table_error}")
-                        
-                        # Extract links
-                        try:
-                            for link in page.hyperlinks:
-                                metadata["links"].append({
-                                    "page": i + 1,
-                                    "url": link.get("uri", ""),
-                                    "text": link.get("text", "")
-                                })
-                        except Exception as link_error:
-                            logger.warning(f"Failed to extract links from page {i+1}: {link_error}")
-                        
-                        # Track fonts
-                        try:
-                            if page.chars:
-                                for char in page.chars[:100]:  # Sample first 100 chars
-                                    metadata["fonts"].add(char.get("fontname", "unknown"))
-                        except Exception:
-                            pass  # Font tracking is not critical
-                        
-                        # Check for images
-                        has_images = False
-                        try:
-                            has_images = len(page.images) > 0
-                        except Exception:
-                            pass
-                        
-                        page_info = PageInfo(
-                            page_num=i + 1,
-                            text=page_text,
-                            has_images=has_images,
-                            confidence=1.0
-                        )
-                        pages.append(page_info)
-                        full_text_parts.append(page_text)
-                    except Exception as page_error:
-                        logger.warning(f"Failed to process page {i+1}: {page_error}")
-                        # Add empty page entry to maintain page count
-                        pages.append(PageInfo(
-                            page_num=i + 1,
-                            text="",
-                            has_images=False,
-                            confidence=0.0
-                        ))
-                        full_text_parts.append("")
+            # Fast path with PyMuPDF
+            doc = fitz.open(stream=content, filetype="pdf")
+            pages = []
+            full_text_parts = []
+            metadata = {"tables": [], "links": [], "fonts": set(), "parser": "pymupdf_fast"}
+            
+            for i, page in enumerate(doc):
+                blocks = []
+                page_dict = page.get_text("dict")
+                page_text = page.get_text("text")
+                
+                # Extract links from PyMuPDF
+                for link in page.get_links():
+                    metadata["links"].append({
+                        "page": i + 1,
+                        "url": link.get("uri", ""),
+                        "text": "" # fitz doesn't give link text easily in get_links
+                    })
+
+                for b in page_dict.get("blocks", []):
+                    if b["type"] == 0: # Text block
+                        for l in b["lines"]:
+                            line_text = ""
+                            x0, y0, x1, y1 = 10000, 10000, -10000, -10000
+                            max_size = 0
+                            font_name = "unknown"
+                            
+                            for s in l["spans"]:
+                                line_text += s["text"]
+                                x0 = min(x0, s["bbox"][0])
+                                y0 = min(y0, s["bbox"][1])
+                                x1 = max(x1, s["bbox"][2])
+                                y1 = max(y1, s["bbox"][3])
+                                max_size = max(max_size, s["size"])
+                                font_name = s["font"]
+                                metadata["fonts"].add(font_name)
+                            
+                            if line_text.strip():
+                                blocks.append(TextBlock(
+                                    text=line_text,
+                                    x=float(x0),
+                                    y=float(y0),
+                                    width=float(x1 - x0),
+                                    height=float(y1 - y0),
+                                    font_size=float(max_size),
+                                    font_name=font_name
+                                ))
+                
+                pages.append(PageInfo(
+                    page_num=i + 1,
+                    text=page_text,
+                    has_images=len(page.get_images()) > 0,
+                    confidence=1.0,
+                    blocks=blocks
+                ))
+                full_text_parts.append(page_text)
+            
+            doc.close()
+            metadata["fonts"] = list(metadata["fonts"])
+            metadata["parsing_time"] = time.time() - start_time
+            
+            return ParsedDocument(
+                filename=filename,
+                doc_type=DocumentType.DIGITAL,
+                total_pages=len(pages),
+                text="\n\n---PAGE BREAK---\n\n".join(full_text_parts),
+                chunks=[],
+                metadata=metadata,
+                pages=pages
+            )
         except Exception as e:
-            logger.error(f"Failed to open or process PDF: {e}")
+            logger.error(f"PyMuPDF extraction failed: {e}")
             raise
-        
-        metadata["fonts"] = list(metadata["fonts"])
-        
-        return ParsedDocument(
-            filename=filename,
-            doc_type=DocumentType.DIGITAL,
-            total_pages=len(pages),
-            text="\n\n---PAGE BREAK---\n\n".join(full_text_parts),
-            chunks=[],  # Will be chunked later
-            metadata=metadata,
-            pages=pages
-        )
     
     loop = asyncio.get_event_loop()
     return await loop.run_in_executor(_thread_executor, _extract)

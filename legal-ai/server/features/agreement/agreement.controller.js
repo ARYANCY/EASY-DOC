@@ -21,11 +21,12 @@ const parsePdfContent = async (filePath, filename) => {
     });
     
     const text = nlpRes.data?.text || '';
-    console.log(`[Agreement] Parsed PDF: ${text.length} chars`);
-    return text;
+    const pages = nlpRes.data?.pages || [];
+    console.log(`[Agreement] Parsed PDF: ${text.length} chars, ${pages.length} pages`);
+    return { text, pages };
   } catch (err) {
     console.error('[Agreement] PDF parsing failed:', err.message);
-    return '';
+    return { text: '', pages: [] };
   }
 };
 
@@ -66,10 +67,10 @@ export const uploadTemplate = async (req, res, next) => {
     
     // Parse PDF content asynchronously in background (don't block response)
     parsePdfContent(templateUrl, req.file.originalname)
-      .then(async (parsedText) => {
-        if (parsedText) {
-          await agreementService.updateParsedContent(agreement.agreementId, parsedText);
-          console.log(`[Agreement] Background parsing complete: ${parsedText.length} chars for ${agreement.agreementId}`);
+      .then(async (result) => {
+        if (result.text) {
+          await agreementService.updateParsedContent(agreement.agreementId, result.text, result.pages);
+          console.log(`[Agreement] Background parsing complete: ${result.text.length} chars for ${agreement.agreementId}`);
         }
       })
       .catch(err => {
@@ -270,6 +271,7 @@ export const getAgreement = async (req, res, next) => {
         versions: agreement.versions,
         hasParsedContent: !!agreement.parsedContent,
         parsedContentLength: agreement.parsedContent?.length || 0,
+        pages: agreement.pages || [],
         templateUrl: agreement.templateUrl,
         pdfUrl: agreement.pdfUrl,
         createdAt: agreement.createdAt,

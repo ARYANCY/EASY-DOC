@@ -159,4 +159,13 @@ export const callAnalyzeLaws = async (documentId, text, jurisdiction = null) => 
   }, 2); // 2 retries
 };
 
+export const callConvertHTML = async (pages) => {
+  return withRetry(async () => {
+    const response = await pythonApi.post('/parse/convert-html', {
+      pages
+    });
+    return response.data;
+  });
+};
+
 export default pythonApi;
