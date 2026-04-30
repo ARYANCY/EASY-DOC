@@ -54,7 +54,7 @@ export const callParser = async (fileBuffer, filename) => {
     // Don't set Content-Type - let axios set it with proper boundary
     try {
       const response = await pythonApi.post('/parse/', formData, {
-        timeout: 15000, // 15s - parsing is now async
+        timeout: 300000, // 5 minutes - parsing can take a long time for large PDFs
       });
       return response.data;
     } catch (error) {

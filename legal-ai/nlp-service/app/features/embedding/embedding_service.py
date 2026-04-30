@@ -13,14 +13,26 @@ async def embed_query(query: str) -> List[float]:
     return await svc.encode_query(query)
 
 async def store_embeddings(document_id: str, texts: List[str], embeddings: List[List[float]]):
-    """Store embeddings in vector database."""
+    """Store embeddings in vector database in batches, deleting any existing first."""
     db = get_vector_db()
-    ids = [f"{document_id}_{i}" for i in range(len(texts))]
-    metadatas = [
-        {"document_id": document_id, "chunk_index": i}
-        for i in range(len(texts))
-    ]
-    db.add_documents(texts, embeddings, ids, metadatas)
+    
+    # Ensure no duplicates: delete existing chunks for this document
+    db.delete_document(document_id)
+    
+    BATCH_SIZE = 32
+    total_chunks = len(texts)
+    
+    for i in range(0, total_chunks, BATCH_SIZE):
+        batch_texts = texts[i:i + BATCH_SIZE]
+        batch_embeddings = embeddings[i:i + BATCH_SIZE]
+        batch_ids = [f"{document_id}_{j}" for j in range(i, i + len(batch_texts))]
+        batch_metadatas = [
+            {"document_id": document_id, "chunk_index": j}
+            for j in range(i, i + len(batch_texts))
+        ]
+        
+        # Add batch to vector DB
+        db.add_documents(batch_texts, batch_embeddings, batch_ids, batch_metadatas)
 
 async def embed_and_store(document_id: str, texts: List[str]) -> dict:
     """Embed texts and store them (convenience function)."""

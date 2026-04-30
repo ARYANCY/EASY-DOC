@@ -6,16 +6,34 @@ from app.db.connection import get_db
 
 
 async def chat_with_document(query: str, document_id: str | None = None) -> dict:
-    """Chat with document using RAG with parallel processing."""
+    """Chat with document using RAG with parallel processing and strict context guards."""
     
-    # Retrieve relevant context
+    # Retrieve relevant context (threshold filtering is applied in search_service)
     results = await search_documents(query, document_id, top_k=5)
     
+    # Context Guard Layer: Bypass LLM if no results meet the threshold
+    if not results:
+        return {
+            "answer": "Not found in document. The information requested could not be found with a high enough confidence score.",
+            "sources": [],
+            "query": query,
+            "document_id": document_id
+        }
+    
     # Build context from search results with citations
-    context = "\n\n".join([
-        f"[Source: {r.get('filename', 'Unknown')}]\n{r['text']}" 
-        for r in results
-    ])
+    context_chunks = []
+    for r in results:
+        snippet = r.get('text', '')
+        # Truncate extremely long chunks to prevent context window overflow
+        if len(snippet) > 1500:
+            snippet = snippet[:1500] + "..."
+        context_chunks.append(f"[Source: {r.get('filename', 'Unknown')}]\n{snippet}")
+        
+    context = "\n\n".join(context_chunks)
+    
+    # Safety truncation for the entire context block (~8000 chars roughly)
+    if len(context) > 12000:
+        context = context[:12000] + "\n...[Context truncated due to length]"
     
     # Get document info if available
     doc_info = None
@@ -25,7 +43,7 @@ async def chat_with_document(query: str, document_id: str | None = None) -> dict
     
     # Generate response with structured prompt
     prompt = PromptBuilder.chat(context, query)
-    answer = await get_llm_response(prompt, temperature=0.5)
+    answer = await get_llm_response(prompt, temperature=0.1)  # Lower temperature for stricter grounding
     
     return {
         "answer": answer,

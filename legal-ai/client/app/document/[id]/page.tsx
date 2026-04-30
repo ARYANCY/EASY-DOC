@@ -7,6 +7,7 @@ import RiskPanel from '../../../components/RiskPanel';
 import ChatPanel from '../../../components/ChatPanel';
 import DocumentSummary from '../../../components/DocumentSummary';
 import ClausesPanel from '../../../components/ClausesPanel';
+import ApplicableLawsPanel from '../../../components/ApplicableLawsPanel';
 import { exportToPDF } from '../../../lib/utils/exportPDF';
 
 import {
@@ -27,6 +28,7 @@ import {
   MessageSquare,
   Sparkles,
   LayoutDashboard,
+  Landmark,
 } from 'lucide-react';
 import Link from 'next/link';
 import Sidebar from '../../../components/Sidebar';
@@ -96,7 +98,7 @@ export default function DocumentPage() {
   const router = useRouter();
   const documentId = params.id as string;
   
-  const [activeTab, setActiveTab] = useState<'pdf' | 'original' | 'simplified' | 'clauses' | 'summary'>('pdf');
+  const [activeTab, setActiveTab] = useState<'pdf' | 'original' | 'simplified' | 'clauses' | 'laws' | 'summary'>('pdf');
   const [loading, setLoading] = useState(true);
   const [documentData, setDocumentData] = useState<Document | null>(null);
   const [riskData, setRiskData] = useState<any>(null);
@@ -474,6 +476,7 @@ export default function DocumentPage() {
                   { id: 'original', label: 'Parsed Text', enabled: true },
                   { id: 'simplified', label: 'Simplified', enabled: true },
                   { id: 'clauses', label: 'Clauses', enabled: clauseExtractionEnabled },
+                  { id: 'laws', label: 'Laws', enabled: true },
                   { id: 'summary', label: 'Summary', enabled: documentSummaryEnabled },
                 ].filter(tab => tab.enabled).map((tab) => (
                   <button
@@ -553,6 +556,11 @@ export default function DocumentPage() {
               {activeTab === 'clauses' && (
                 <div className="p-4">
                   <ClausesPanel clauses={clauseList} />
+                </div>
+              )}
+              {activeTab === 'laws' && (
+                <div className="p-4">
+                  <ApplicableLawsPanel documentId={documentId} documentText={documentData?.text} />
                 </div>
               )}
               {activeTab === 'summary' && (
@@ -689,6 +697,7 @@ export default function DocumentPage() {
                 { id: 'original', label: 'Original Document', icon: FileText, enabled: true },
                 { id: 'simplified', label: 'Simplified Version', icon: FileText, enabled: true },
                 { id: 'clauses', label: 'Key Clauses', icon: FileText, enabled: clauseExtractionEnabled },
+                { id: 'laws', label: 'Applicable Laws', icon: Landmark, enabled: true },
                 { id: 'summary', label: 'Summary', icon: FileText, enabled: documentSummaryEnabled },
               ]
                 .filter(tab => tab.enabled)
@@ -771,6 +780,9 @@ export default function DocumentPage() {
                     )}
                     {activeTab === 'clauses' && (
                       <ClausesPanel clauses={(clausesData && clausesData.length > 0) ? clausesData : sampleClauses} />
+                    )}
+                    {activeTab === 'laws' && (
+                      <ApplicableLawsPanel documentId={documentId} documentText={documentData?.text} />
                     )}
                     {activeTab === 'summary' && (
                       <DocumentSummary
