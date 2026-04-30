@@ -22,23 +22,21 @@ class LawReference(BaseModel):
     article: Optional[str] = None
     context: str
     link: str
-    importance: str  # high|medium|low
-    category: str    # statute|regulation|case_law|constitutional
-    relevance_score: Optional[float] = None # Added for InsightLaw
-
+    importance: str 
+    category: str    
+    relevance_score: Optional[float] = None 
 class AnalyzeLawsResponse(BaseModel):
     success: bool
     document_id: str
     laws: List[LawReference]
     generated_at: str
     cached: bool
-    source: str # e.g. "insightlaw_api" or "llm_fallback"
+    source: str 
 
 @router.post("/analyze", response_model=AnalyzeLawsResponse)
 async def analyze_laws(request: AnalyzeLawsRequest):
     """Analyze a legal document and extract relevant laws and statutes using InsightLaw API."""
     try:
-        # Step 1: Extract entities using LLM (Fast Extraction)
         extract_prompt = f"""Extract a JSON list of the top 5 most important legal entities (acts, statutes, sections, cases) EXPLICITLY mentioned in this text.
         CRITICAL: ONLY extract entities that are directly written in the text. Do NOT guess or infer applicable laws.
         If NO laws or legal entities are explicitly mentioned, output an empty JSON array: []
