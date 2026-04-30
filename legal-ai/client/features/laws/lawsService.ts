@@ -17,10 +17,17 @@ export const analyzeLaws = async (documentId: string, text?: string, jurisdictio
       documentId,
       text,
       jurisdiction
+    }, {
+      timeout: 40000 
     });
     return response.data.laws || [];
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error analyzing laws:', error);
+
+    if (error.code === 'ECONNABORTED') {
+      throw new Error('Request timed out. The law analysis is taking too long.');
+    }
     throw error;
   }
 };
+

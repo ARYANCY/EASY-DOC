@@ -36,15 +36,34 @@ class AnalyzeLawsResponse(BaseModel):
 @router.post("/analyze", response_model=AnalyzeLawsResponse)
 async def analyze_laws(request: AnalyzeLawsRequest):
     """Analyze a legal document and extract relevant laws and statutes using InsightLaw API."""
+    logger.info(f"Starting law analysis for document: {request.document_id}")
+    
+    if not request.text or len(request.text.strip()) == 0:
+        logger.warning(f"Empty text provided for document: {request.document_id}")
+        return AnalyzeLawsResponse(
+            success=True,
+            document_id=request.document_id,
+            laws=[],
+            generated_at=datetime.now(timezone.utc).isoformat(),
+            cached=False,
+            source="no_text"
+        )
+    
     try:
+        # Truncate text to avoid token limits
+        text_excerpt = request.text[:8000] if len(request.text) > 8000 else request.text
+        
         extract_prompt = f"""Extract a JSON list of the top 5 most important legal entities (acts, statutes, sections, cases) EXPLICITLY mentioned in this text.
         CRITICAL: ONLY extract entities that are directly written in the text. Do NOT guess or infer applicable laws.
         If NO laws or legal entities are explicitly mentioned, output an empty JSON array: []
         Output ONLY a valid JSON array of strings. Example: ["Section 138 Negotiable Instruments Act", "NDPS Act", "Kesavananda Bharati case"]
         Text (excerpt):
-        {request.text[:8000]}
+        {text_excerpt}
         """
+        
+        logger.info(f"Calling LLM for entity extraction, text length: {len(text_excerpt)}")
         response_text = await get_llm_response(extract_prompt, temperature=0.1)
+        logger.info(f"LLM response received: {response_text[:200]}...")
         
         entities = []
         try:
@@ -54,50 +73,89 @@ async def analyze_laws(request: AnalyzeLawsRequest):
                 entities = json.loads(json_match.group(0))
             else:
                 entities = json.loads(response_text)
+            
+            logger.info(f"Successfully extracted {len(entities)} entities: {entities}")
         except Exception as e:
-            logger.warning(f"Failed to parse entities JSON: {e}. Falling back to full LLM analysis.")
+            logger.warning(f"Failed to parse entities JSON: {e}. Response was: {response_text[:500]}")
             
         # Step 2: Query InsightLaw API with extracted entities
         insightlaw_service = get_insightlaw_service()
         laws_data = []
         source = "insightlaw_api"
         
-        if entities:
-            api_results = await insightlaw_service.fetch_laws(entities, request.jurisdiction)
-            for res in api_results:
-                laws_data.append(LawReference(
-                    law_name=res.get("law_name", ""),
-                    section=res.get("section"),
-                    article=res.get("article"),
-                    context=res.get("summary", "Extracted from InsightLaw Database."),
-                    link=res.get("link", ""),
-                    importance=res.get("importance", "medium"),
-                    category=res.get("category", "statute"),
-                    relevance_score=res.get("relevance_score", 0.9)
-                ))
+        if entities and len(entities) > 0:
+            logger.info(f"Querying InsightLaw API with {len(entities)} entities")
+            try:
+                api_results = await insightlaw_service.fetch_laws(entities, request.jurisdiction)
+                logger.info(f"InsightLaw API returned {len(api_results)} results")
                 
-        # Step 3: Fallback to detailed LLM analysis if API returns empty
+                for res in api_results:
+                    laws_data.append(LawReference(
+                        law_name=res.get("law_name", ""),
+                        section=res.get("section"),
+                        article=res.get("article"),
+                        context=res.get("summary", f"Legal reference to {res.get('law_name', 'this statute')}."),
+                        link=res.get("link", ""),
+                        importance=res.get("importance", "medium"),
+                        category=res.get("category", "statute"),
+                        relevance_score=res.get("relevance_score", 0.9)
+                    ))
+            except Exception as api_error:
+                logger.error(f"InsightLaw API failed: {api_error}")
+                # Continue to LLM fallback
+                
+        # Step 3: Fallback to detailed LLM analysis if API returns empty or failed
         if not laws_data:
+            logger.info("No results from InsightLaw API, using LLM fallback")
             source = "llm_fallback"
-            prompt = f"""You are a legal document analysis AI. Extract all legal references EXPLICITLY mentioned in the provided document text.
-            CRITICAL: ONLY extract laws, acts, statutes, or cases that are directly written in the text. Do NOT infer or guess any laws that are not explicitly stated.
-            If NO laws or legal entities are explicitly mentioned, return an empty JSON array: []
-            Output Format - JSON Array:
-            [{{ "law_name": "...", "section": "...", "article": "...", "context": "...", "link": "...", "importance": "high|medium|low", "category": "statute|regulation|case_law|constitutional" }}]
-            Constraints: Only output raw JSON array. Keep to 5 most relevant laws.
-            Document Text (excerpt):
-            {request.text[:8000]}
-            """
-            llm_response = await get_llm_response(prompt, temperature=0.3)
             
             try:
-                json_match = re.search(r'\[.*\]', llm_response, re.DOTALL)
-                fallback_data = json.loads(json_match.group(0)) if json_match else json.loads(llm_response)
-                laws_data = [LawReference(**law) for law in fallback_data]
-            except Exception as parse_e:
-                logger.error(f"Fallback parsing failed: {parse_e}")
+                prompt = f"""You are a legal document analysis AI. Extract all legal references EXPLICITLY mentioned in the provided document text.
+                CRITICAL: ONLY extract laws, acts, statutes, or cases that are directly written in the text. Do NOT infer or guess any laws that are not explicitly stated.
+                If NO laws or legal entities are explicitly mentioned, return an empty JSON array: []
+                Output Format - JSON Array with this exact structure:
+                [{{ "law_name": "Exact Name of Act/Statute", "section": "Section number if mentioned", "article": "Article number if mentioned", "context": "Brief description of what this law covers in 1-2 sentences", "link": "", "importance": "high|medium|low", "category": "statute|regulation|case_law|constitutional" }}]
+                Constraints: 
+                - Only output valid raw JSON array
+                - Keep to 5 most relevant laws maximum
+                - Context should be descriptive and helpful
+                - If no laws found, return: []
+                
+                Document Text (excerpt):
+                {text_excerpt}
+                """
+                
+                llm_response = await get_llm_response(prompt, temperature=0.3)
+                logger.info(f"LLM fallback response: {llm_response[:200]}...")
+                
+                try:
+                    json_match = re.search(r'\[.*\]', llm_response, re.DOTALL)
+                    fallback_data = json.loads(json_match.group(0)) if json_match else json.loads(llm_response)
+                    
+                    if isinstance(fallback_data, list):
+                        for law in fallback_data:
+                            laws_data.append(LawReference(
+                                law_name=law.get("law_name", "Unknown"),
+                                section=law.get("section"),
+                                article=law.get("article"),
+                                context=law.get("context", "Legal reference extracted from document."),
+                                link=law.get("link", ""),
+                                importance=law.get("importance", "medium"),
+                                category=law.get("category", "statute"),
+                                relevance_score=law.get("relevance_score", 0.85)
+                            ))
+                        logger.info(f"LLM fallback extracted {len(laws_data)} laws")
+                    else:
+                        logger.warning(f"LLM response was not an array: {fallback_data}")
+                except Exception as parse_e:
+                    logger.error(f"Fallback JSON parsing failed: {parse_e}")
+                    laws_data = []
+            except Exception as llm_error:
+                logger.error(f"LLM fallback failed: {llm_error}")
                 laws_data = []
 
+        logger.info(f"Law analysis complete. Source: {source}, Laws found: {len(laws_data)}")
+        
         return AnalyzeLawsResponse(
             success=True,
             document_id=request.document_id,
@@ -109,4 +167,12 @@ async def analyze_laws(request: AnalyzeLawsRequest):
 
     except Exception as e:
         logger.error(f"Law analysis failed: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Failed to analyze laws: {str(e)}")
+        # Return empty response instead of 500 error for better UX
+        return AnalyzeLawsResponse(
+            success=False,
+            document_id=request.document_id,
+            laws=[],
+            generated_at=datetime.now(timezone.utc).isoformat(),
+            cached=False,
+            source="error"
+        )

@@ -147,13 +147,16 @@ export const callParseStatus = async (jobId) => {
 
 export const callAnalyzeLaws = async (documentId, text, jurisdiction = null) => {
   return withRetry(async () => {
+    // Use longer timeout for law analysis (30s) since it involves LLM calls
     const response = await pythonApi.post('/laws/analyze', {
       document_id: documentId,
       text,
       jurisdiction
+    }, {
+      timeout: 30000 // 30 seconds for law analysis
     });
     return response.data;
-  });
+  }, 2); // 2 retries
 };
 
 export default pythonApi;
