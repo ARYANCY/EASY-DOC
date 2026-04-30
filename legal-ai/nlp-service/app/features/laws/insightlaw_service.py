@@ -23,11 +23,9 @@ import asyncio
 
 logger = logging.getLogger(__name__)
 
-# In-memory cache with TTL
 _law_cache = {}
 _cache_ttl = timedelta(hours=1)
 
-# InsightLaw API Base URL
 INSIGHTLAW_BASE_URL = "https://insightlaw.in"
 
 class InsightLawService:
@@ -41,7 +39,7 @@ class InsightLawService:
     def __init__(self):
         self.base_url = INSIGHTLAW_BASE_URL
         self.request_count = 0
-        self.hourly_limit = 200  # Free tier limit
+        self.hourly_limit = 200  
         
     def _is_rate_limited(self) -> bool:
         """Check if we're approaching rate limit."""

@@ -111,12 +111,13 @@ router.post('/analyze', async (req, res) => {
       statusCode = 404;
     }
     
-    res.status(statusCode).json({ 
-      error: errorMessage,
+    // Always return 200 with error info in body so frontend gets proper response structure
+    res.json({ 
       success: false,
       laws: [],
       document_id: req.body.documentId || 'unknown',
-      source: 'error'
+      source: 'error',
+      error: errorMessage
     });
   }
 });
